@@ -13,10 +13,10 @@ elseif(WIN32)
 
 else()
 	# Linux
+    add_definitions(-fPIC)
 	file( GLOB PLATFORM_FILES 
 		"Src/Kernel/OVR_ThreadsPthread.*"
 		"Src/OVR_Linux_*.*" )
-	
 endif()
 
 add_definitions(-DUNICODE -D_UNICODE)
