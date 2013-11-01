@@ -6,7 +6,7 @@ if(APPLE)
 		"Src/Kernel/OVR_ThreadsPthread.*"
 		"Src/OVR_OSX_*.*" )
 	
-elseif(MSVC)
+elseif(WIN32)
 	file( GLOB PLATFORM_FILES
 		"Src/Kernel/OVR_ThreadsWinAPI.*"
 		"Src/OVR_Win32_*.*" )

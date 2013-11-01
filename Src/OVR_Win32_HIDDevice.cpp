@@ -278,7 +278,9 @@ bool HIDDevice::HIDInitialize(const String& path)
 
     if (!openDevice())
     {
+#if !defined(__MINGW32__)
         LogText("OVR::Win32::HIDDevice - Failed to open HIDDevice: ", path);
+#endif
         return false;
     }
 

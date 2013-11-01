@@ -13,11 +13,16 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 *************************************************************************************/
 
+#define MINGW_HAS_SECURE_API 1
 #include "OVR_Win32_HMDDevice.h"
 
 #include "OVR_Win32_DeviceManager.h"
 
 #include <tchar.h>
+
+#include <sec_api/wchar_s.h>
+#include <sec_api/tchar_s.h>
+#include <sec_api/string_s.h>
 
 namespace OVR { namespace Win32 {
 
