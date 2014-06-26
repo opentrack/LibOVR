@@ -5,11 +5,22 @@ Content     :   Cross platform HID device interface.
 Created     :   February 22, 2013
 Authors     :   Lee Cooper
 
-Copyright   :   Copyright 2013 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
 
-Use of this software is subject to the terms of the Oculus license
-agreement provided at the time of installation or download, or which
+Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+you may not use the Oculus VR Rift SDK except in compliance with the License, 
+which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
+
+You may obtain a copy of the License at
+
+http://www.oculusvr.com/licenses/LICENSE-3.1 
+
+Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 *************************************************************************************/
 
@@ -71,7 +82,7 @@ class HIDDeviceManager : public RefCountBase<HIDDeviceManager>
 public:
 
     // Creates a new HIDDeviceManager. Only one instance of HIDDeviceManager should be created at a time.
-    static HIDDeviceManager* Create();
+    static HIDDeviceManager* Create(Ptr<OVR::DeviceManager>& deviceManager);
 
     // Enumerate HID devices using a HIDEnumerateVisitor derived visitor class.
     virtual bool Enumerate(HIDEnumerateVisitor* enumVisitor) = 0;
@@ -118,8 +129,8 @@ public:
         virtual void OnInputReport(UByte* pData, UInt32 length)
         { OVR_UNUSED2(pData, length); }
 
-        virtual UInt64 OnTicks(UInt64 ticksMks)
-        { OVR_UNUSED1(ticksMks);  return Timer::MksPerSecond * 1000; ; }
+        virtual double OnTicks(double tickSeconds)
+        { OVR_UNUSED1(tickSeconds);  return 1000.0 ; }
 
         enum HIDDeviceMessageType
         {

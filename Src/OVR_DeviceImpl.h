@@ -5,11 +5,22 @@ Content     :   Partial back-end independent implementation of Device interfaces
 Created     :   October 10, 2012
 Authors     :   Michael Antonov
 
-Copyright   :   Copyright 2012 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
 
-Use of this software is subject to the terms of the Oculus license
-agreement provided at the time of installation or download, or which
+Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+you may not use the Oculus VR Rift SDK except in compliance with the License, 
+which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
+
+You may obtain a copy of the License at
+
+http://www.oculusvr.com/licenses/LICENSE-3.1 
+
+Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 *************************************************************************************/
 
@@ -32,63 +43,45 @@ class DeviceFactory;
 
 enum
 {
-    Oculus_VendorId = 0x2833
-};
-
-//-------------------------------------------------------------------------------------
-// Globally shared Lock implementation used for MessageHandlers.
-
-class SharedLock
-{    
-public:
-    SharedLock() : UseCount(0) {}
-
-    Lock* GetLockAddRef();
-    void  ReleaseLock(Lock* plock);
-   
-private:
-    Lock* toLock() { return (Lock*)Buffer; }
-
-    // UseCount and max alignment.
-    volatile int    UseCount;
-    UInt64          Buffer[(sizeof(Lock)+sizeof(UInt64)-1)/sizeof(UInt64)];
+    Oculus_VendorId = 0x2833,
+    Device_Tracker_ProductId  = 0x0001,
+    Device_Tracker2_ProductId  = 0x0021,
+    Device_KTracker_ProductId = 0x0010,
 };
 
 
 // Wrapper for MessageHandler that includes synchronization logic.
-// References to MessageHandlers are organized in a list to allow for them to
-// easily removed with MessageHandler::RemoveAllHandlers.
-class MessageHandlerRef : public ListNode<MessageHandlerRef>
-{    
+class MessageHandlerRef
+{   
+    enum
+    {
+        MaxHandlersCount = 4
+    };
 public:
     MessageHandlerRef(DeviceBase* device);
     ~MessageHandlerRef();
 
-    void SetHandler(MessageHandler* hander);
-
+    bool            HasHandlers() const { return HandlersCount > 0; };
+    void            AddHandler(MessageHandler* handler);
+    // returns false if the handler is not found
+    bool            RemoveHandler(MessageHandler* handler);
     // Not-thread-safe version
-    void SetHandler_NTS(MessageHandler* hander);
+    void            AddHandler_NTS(MessageHandler* handler);
     
-    void Call(const Message& msg)
-    {
-        Lock::Locker lockScope(pLock);
-        if (pHandler)
-            pHandler->OnMessage(msg);
-    }
+    void            Call(const Message& msg);
 
     Lock*           GetLock() const { return pLock; }
-
-    // GetHandler() is not thread safe if used out of order across threads; nothing can be done
-    // about that.
-    MessageHandler* GetHandler() const { return pHandler; }
     DeviceBase*     GetDevice() const  { return pDevice; }
 
 private:
     Lock*           pLock;   // Cached global handler lock.
     DeviceBase*     pDevice;
-    MessageHandler* pHandler;
-};
 
+    int             HandlersCount;
+    MessageHandler* pHandlers[MaxHandlersCount];
+
+    bool            removeHandler(int idx);
+};
 
 
 //-------------------------------------------------------------------------------------
@@ -210,12 +203,15 @@ public:
     AtomicInt<UInt32>      RefCount;
     Ptr<DeviceCreateDesc>  pCreateDesc;
     Ptr<DeviceBase>        pParent;
+    volatile bool          ConnectedFlag;
     MessageHandlerRef      HandlerRef;
 
     DeviceCommon(DeviceCreateDesc* createDesc, DeviceBase* device, DeviceBase* parent)
-        : RefCount(1), pCreateDesc(createDesc), pParent(parent), HandlerRef(device)
+        : RefCount(1), pCreateDesc(createDesc), pParent(parent),
+          ConnectedFlag(true), HandlerRef(device)
     {
     }
+	virtual ~DeviceCommon() {}
 
     // Device reference counting delegates to Manager thread to actually kill devices.
     void DeviceAddRef();
@@ -412,7 +408,7 @@ public:
     Ptr<DeviceCreateDesc> FindDevice(const String& path, DeviceType = Device_None);
 
     // Finds HID device by HIDDeviceDesc.
-    Ptr<DeviceCreateDesc> FindHIDDevice(const HIDDeviceDesc&);
+    Ptr<DeviceCreateDesc> FindHIDDevice(const HIDDeviceDesc&, bool created);
     void DetectHIDDevice(const HIDDeviceDesc&);
 
     // Manager Lock-protected list of devices.

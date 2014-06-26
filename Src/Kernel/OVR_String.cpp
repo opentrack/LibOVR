@@ -6,11 +6,22 @@ Content     :   String UTF8 string implementation with copy-on-write semantics
 Created     :   September 19, 2012
 Notes       : 
 
-Copyright   :   Copyright 2012 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
 
-Use of this software is subject to the terms of the Oculus license
-agreement provided at the time of installation or download, or which
+Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+you may not use the Oculus VR Rift SDK except in compliance with the License, 
+which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
+
+You may obtain a copy of the License at
+
+http://www.oculusvr.com/licenses/LICENSE-3.1 
+
+Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 ************************************************************************************/
 
@@ -558,7 +569,7 @@ StringBuffer::StringBuffer(UPInt growSize)
 StringBuffer::StringBuffer(const char* data)
     : pData(NULL), Size(0), BufferSize(0), GrowSize(OVR_SBUFF_DEFAULT_GROW_SIZE), LengthIsSize(false)
 {
-    *this = data;
+    AppendString(data);
 }
 
 StringBuffer::StringBuffer(const char* data, UPInt dataSize)
@@ -574,10 +585,9 @@ StringBuffer::StringBuffer(const String& src)
 }
 
 StringBuffer::StringBuffer(const StringBuffer& src)
-    : pData(NULL), Size(0), BufferSize(src.GetGrowSize()), GrowSize(OVR_SBUFF_DEFAULT_GROW_SIZE), LengthIsSize(false)
+    : pData(NULL), Size(0), BufferSize(0), GrowSize(OVR_SBUFF_DEFAULT_GROW_SIZE), LengthIsSize(false)
 {
     AppendString(src.ToCStr(), src.GetSize());
-    LengthIsSize = src.LengthIsSize;
 }
 
 StringBuffer::StringBuffer(const wchar_t* data)
@@ -715,6 +725,12 @@ void      StringBuffer::operator = (const String& src)
 {
     Resize(src.GetSize());
     memcpy(pData, src.ToCStr(), src.GetSize());
+}
+
+void      StringBuffer::operator = (const StringBuffer& src)
+{
+	Clear();
+	AppendString(src.ToCStr(), src.GetSize());
 }
 
 

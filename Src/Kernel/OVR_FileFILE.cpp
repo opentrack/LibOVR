@@ -6,11 +6,22 @@ Content     :   File wrapper class implementation (Win32)
 Created     :   April 5, 1999
 Authors     :   Michael Antonov
 
-Copyright   :   Copyright 2012 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
 
-Use of this software is subject to the terms of the Oculus license
-agreement provided at the time of installation or download, or which
+Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+you may not use the Oculus VR Rift SDK except in compliance with the License, 
+which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
+
+You may obtain a copy of the License at
+
+http://www.oculusvr.com/licenses/LICENSE-3.1 
+
+Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 **************************************************************************/
 
@@ -78,7 +89,7 @@ public:
 class SysErrorModeDisabler
 {
 public:
-    SysErrorModeDisabler(const char* pfileName) { }
+    SysErrorModeDisabler(const char* pfileName) { OVR_UNUSED(pfileName); }
 };
 #endif // OVR_OS_WIN32
 
@@ -550,9 +561,10 @@ bool    FILEFile::CloseCancel()
 }
 */
 
-File *FileFILEOpen(const String& path, int flags, int mode)
+Ptr<File> FileFILEOpen(const String& path, int flags, int mode)
 {
-    return new FILEFile(path, flags, mode);
+    Ptr<File> result = *new FILEFile(path, flags, mode);
+	return result;
 }
 
 // Helper function: obtain file information time.

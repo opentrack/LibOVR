@@ -6,11 +6,22 @@ Content     :   Standard library defines and simple types
 Created     :   September 19, 2012
 Notes       : 
 
-Copyright   :   Copyright 2012 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
 
-Use of this software is subject to the terms of the Oculus license
-agreement provided at the time of installation or download, or which
+Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+you may not use the Oculus VR Rift SDK except in compliance with the License, 
+which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
+
+You may obtain a copy of the License at
+
+http://www.oculusvr.com/licenses/LICENSE-3.1 
+
+Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 ************************************************************************************/
 
@@ -129,6 +140,8 @@ otherwise accompanies this software in either electronic or hard copy form.
 // MSVC 8.0 (VC2005)            = 1400
 // MSVC 9.0 (VC2008)            = 1500
 // MSVC 10.0 (VC2010)           = 1600
+// MSVC 11.0 (VC2012)           = 1700
+// MSVC 12.0 (VC2013)           = 1800
 #  define OVR_CC_MSVC        _MSC_VER
 
 #elif defined(__GNUC__)
@@ -182,12 +195,14 @@ otherwise accompanies this software in either electronic or hard copy form.
 #  include <stdlib.h>
 #  include <crtdbg.h>
 
+#if 0
 // Uncomment this to help debug memory leaks under Visual Studio in OVR apps only.
 // This shouldn't be defined in customer releases.
 #  ifndef OVR_DEFINE_NEW
 #    define OVR_DEFINE_NEW new(__FILE__, __LINE__)
 #    define new OVR_DEFINE_NEW
 #  endif
+#endif
 
 #endif
 
@@ -247,7 +262,7 @@ typedef uint64_t        UInt64;
 // BaseTypes namespace is explicitly declared to allow base types to be used
 // by customers directly without other contents of OVR namespace.
 //
-// Its is expected that GFx samples will declare 'using namespace OVR::BaseTypes'
+// Its is expected that OVR samples will declare 'using namespace OVR::BaseTypes'
 // to allow using these directly without polluting the target scope with other
 // OVR declarations, such as Ptr<>, String or Mutex.
 namespace BaseTypes
@@ -361,6 +376,7 @@ namespace BaseTypes
 // If not in debug build, macros do nothing
 #ifndef OVR_BUILD_DEBUG
 
+#  define OVR_DEBUG_CODE(c) c
 #  define OVR_DEBUG_BREAK  ((void)0)
 #  define OVR_ASSERT(p)    ((void)0)
 
@@ -385,6 +401,8 @@ namespace BaseTypes
 #else
 #  define OVR_DEBUG_BREAK       do { *((int *) 0) = 1; } while(0)
 #endif
+
+#define OVR_DEBUG_CODE(c)
 
 // This will cause compiler breakpoint
 #define OVR_ASSERT(p)           do { if (!(p))  { OVR_DEBUG_BREAK; } } while(0)

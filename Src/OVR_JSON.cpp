@@ -30,11 +30,22 @@ Notes       :
   THE SOFTWARE.
 
 
-Copyright   :   Copyright 2012 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
 
-Use of this software is subject to the terms of the Oculus license
-agreement provided at the time of installation or download, or which
+Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+you may not use the Oculus VR Rift SDK except in compliance with the License, 
+which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
+
+You may obtain a copy of the License at
+
+http://www.oculusvr.com/licenses/LICENSE-3.1 
+
+Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 ************************************************************************************/
 
@@ -418,6 +429,23 @@ JSON* JSON::Parse(const char* buff, const char** perror)
     }	// parse failure. ep is set.
 
     return json;
+}
+
+//-----------------------------------------------------------------------------
+// This version works for buffers that are not null terminated strings.
+JSON* JSON::ParseBuffer(const char *buff, int len, const char** perror)
+{
+	// Our JSON parser does not support length-based parsing,
+	// so ensure it is null-terminated.
+	char *termStr = new char[len + 1];
+	memcpy(termStr, buff, len);
+	termStr[len] = '\0';
+
+	JSON *objJson = Parse(termStr, perror);
+
+	delete[]termStr;
+
+	return objJson;
 }
 
 //-----------------------------------------------------------------------------
@@ -938,6 +966,17 @@ void JSON::ReplaceItem(unsigned int index, JSON* new_item)
 }
 */
 
+// Removes and frees the last child item
+void JSON::RemoveLast()
+{
+    JSON* child = Children.GetLast();
+    if (!Children.IsNull(child))
+    {
+        child->RemoveNode();
+        child->Release();
+    }
+}
+
 // Helper function to simplify creation of a typed object
 JSON* JSON::createHelper(JSONItemType itemType, double dval, const char* strVal)
 {
@@ -951,6 +990,51 @@ JSON* JSON::createHelper(JSONItemType itemType, double dval, const char* strVal)
     return item;
 }
 
+//-----------------------------------------------------------------------------
+// Get elements by name
+double JSON::GetNumberByName(const char *name, double defValue)
+{
+	JSON* item = GetItemByName(name);
+	if (!item || item->Type != JSON_Number) {
+		return defValue;
+	}
+	else {
+		return item->dValue;
+	}
+}
+
+int JSON::GetIntByName(const char *name, int defValue)
+{
+	JSON* item = GetItemByName(name);
+	if (!item || item->Type != JSON_Number) {
+		return defValue;
+	}
+	else {
+		return (int)item->dValue;
+	}
+}
+
+bool JSON::GetBoolByName(const char *name, bool defValue)
+{
+	JSON* item = GetItemByName(name);
+	if (!item || item->Type != JSON_Bool) {
+		return defValue;
+	}
+	else {
+		return (int)item->dValue != 0;
+	}
+}
+
+String JSON::GetStringByName(const char *name, const String &defValue)
+{
+	JSON* item = GetItemByName(name);
+	if (!item || item->Type != JSON_String) {
+		return defValue;
+	}
+	else {
+		return item->Value;
+	}
+}
 
 //-----------------------------------------------------------------------------
 // Adds an element to an array object type
@@ -962,6 +1046,31 @@ void JSON::AddArrayElement(JSON *item)
     Children.PushBack(item);
 }
 
+// Inserts an element into a valid array position
+void JSON::InsertArrayElement(int index, JSON *item)
+{
+    if (!item)
+        return;
+
+    if (index == 0)
+    {
+        Children.PushFront(item);
+        return;
+    }
+
+    JSON* iter = Children.GetFirst();
+    int i=0;
+    while (iter && i<index)
+    {
+        iter = Children.GetNext(iter);
+        i++;
+    }
+
+    if (iter)
+        iter->InsertNodeBefore(item);
+    else
+        Children.PushBack(item);
+}
 
 // Returns the size of an array
 int JSON::GetArraySize()
@@ -1000,6 +1109,23 @@ const char* JSON::GetArrayString(int index)
     }
 }
 
+JSON* JSON::Copy()
+{
+    JSON* copy = new JSON(Type);
+    copy->Name = Name;
+    copy->Value = Value;
+    copy->dValue = dValue;
+
+    JSON* child = Children.GetFirst();
+    while (!Children.IsNull(child))
+    {
+        copy->Children.PushBack(child->Copy());
+        child = Children.GetNext(child);
+    }
+
+    return copy;
+}
+
 //-----------------------------------------------------------------------------
 // Loads and parses the given JSON file pathname and returns a JSON object tree.
 // The returned object must be Released after use.
@@ -1013,7 +1139,7 @@ JSON* JSON::Load(const char* path, const char** perror)
     }
 
     int    len   = f.GetLength();
-    UByte* buff  = (UByte*)OVR_ALLOC(len);
+    UByte* buff  = (UByte*)OVR_ALLOC(len + 1);
     int    bytes = f.Read(buff, len);
     f.Close();
 
@@ -1022,6 +1148,9 @@ JSON* JSON::Load(const char* path, const char** perror)
         OVR_FREE(buff);
         return NULL;
     }
+
+	// Ensure the result is null-terminated since Parse() expects null-terminated input.
+	buff[len] = '\0';
 
     JSON* json = JSON::Parse((char*)buff, perror);
     OVR_FREE(buff);
@@ -1040,7 +1169,7 @@ bool JSON::Save(const char* path)
     if (text)
     {
         SPInt len   = OVR_strlen(text);
-        OVR_ASSERT(len < (SPInt)(int)len);
+        OVR_ASSERT(len <= (SPInt)(int)len);
 
         int   bytes = f.Write((UByte*)text, (int)len);
         f.Close();

@@ -6,11 +6,22 @@ Content     :   Wraps the lower level LatencyTesterDevice and adds functionality
 Created     :   February 14, 2013
 Authors     :   Lee Cooper
 
-Copyright   :   Copyright 2013 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
 
-Use of this software is subject to the terms of the Oculus license
-agreement provided at the time of installation or download, or which
+Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+you may not use the Oculus VR Rift SDK except in compliance with the License, 
+which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
+
+You may obtain a copy of the License at
+
+http://www.oculusvr.com/licenses/LICENSE-3.1 
+
+Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 *************************************************************************************/
 
@@ -68,6 +79,8 @@ public:
     void        ProcessInputs();
     bool        DisplayScreenColor(Color& colorToDisplay);
 	const char*	GetResultsString();
+
+    bool		IsMeasuringNow() const { return (State != State_WaitingForButton); }
 
     // Begin test. Equivalent to pressing the button on the latency tester.
     void BeginTest();
@@ -131,8 +144,8 @@ private:
          :  DeviceMeasuredElapsedMilliS(0),
             TimedOutWaitingForTestStarted(false),
             TimedOutWaitingForColorDetected(false),
-            StartTestTicksMicroS(0),
-            TestStartedTicksMicroS(0)
+            StartTestSeconds(0.0),
+            TestStartedSeconds(0.0)
         {}
 
         Color                   TargetColor;
@@ -142,8 +155,8 @@ private:
         bool                    TimedOutWaitingForTestStarted;
         bool                    TimedOutWaitingForColorDetected;
 
-        UInt64                  StartTestTicksMicroS;
-        UInt64                  TestStartedTicksMicroS;
+        double                  StartTestSeconds;
+        double                  TestStartedSeconds;
     };
 
     List<MeasurementResult>     Results;
