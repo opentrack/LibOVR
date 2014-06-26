@@ -379,6 +379,7 @@ namespace BaseTypes
 #  define OVR_DEBUG_CODE(c) c
 #  define OVR_DEBUG_BREAK  ((void)0)
 #  define OVR_ASSERT(p)    ((void)0)
+#  define OVR_COMPILER_ASSERT(e) ((void)0)
 
 #else 
 
@@ -405,13 +406,15 @@ namespace BaseTypes
 #define OVR_DEBUG_CODE(c)
 
 // This will cause compiler breakpoint
-#define OVR_ASSERT(p)           do { if (!(p))  { OVR_DEBUG_BREAK; } } while(0)
+#ifdef OVR_BUILD_DEBUG
+#   define OVR_ASSERT(p)           do { if (!(p))  { OVR_DEBUG_BREAK; } } while(0)
+// Compile-time assert; produces compiler error if condition is false
+#   define OVR_COMPILER_ASSERT(x)  { int zero = 0; switch(zero) {case 0: case x:;} }
+#endif
 
 #endif // OVR_BUILD_DEBUG
 
 
-// Compile-time assert; produces compiler error if condition is false
-#define OVR_COMPILER_ASSERT(x)  { int zero = 0; switch(zero) {case 0: case x:;} }
 
 
 

@@ -29,9 +29,9 @@ limitations under the License.
 
 #if defined(OVR_OS_WIN32)
 
-#include <Windows.h>
+#include <windows.h>
 
-#include "DWrite.h"
+#include "dwrite.h"
 
 typedef HRESULT (WINAPI *D2D1CreateFactoryFn)(
 	_In_      D2D1_FACTORY_TYPE,
