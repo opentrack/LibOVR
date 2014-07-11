@@ -55,16 +55,28 @@ namespace OVR { namespace CAPI {
 DistortionRenderer::CreateFunc DistortionRenderer::APICreateRegistry[ovrRenderAPI_Count] =
 {
     0, // None
+#if defined(__MINGW32__)
+    0,
+#else
     &GL::DistortionRenderer::Create,
+#endif
     0, // Android_GLES
-#if defined (OVR_OS_WIN32) && !defined(__MINGW32__)
+#if defined(__MINGW32__)
+    // later might fix these, are they of any use though?
+    // just enabling gives link errors -sh 20140711
+    0,
+    0,
+    0,
+#else
+#   if defined (OVR_OS_WIN32)
     &D3D9::DistortionRenderer::Create,
     &D3D10::DistortionRenderer::Create,
     &D3D11::DistortionRenderer::Create
-#else
+#   else
     0,
     0,
     0
+#   endif
 #endif
 };
 
