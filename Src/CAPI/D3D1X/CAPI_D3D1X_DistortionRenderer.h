@@ -32,6 +32,8 @@ limitations under the License.
 
 #include "../../Kernel/OVR_Log.h"
 
+#ifndef __MINGW32__
+
 namespace OVR { namespace CAPI { namespace D3D_NS {
 
 
@@ -146,3 +148,5 @@ private:
 };
 
 }}} // OVR::CAPI::D3D1X
+
+#endif

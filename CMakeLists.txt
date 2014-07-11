@@ -13,6 +13,7 @@ file( GLOB INTERFACE_HEADERS Include/*.h )
 file( GLOB LIBOVR_FILES
     "Src/Kernel/*.cpp"
 	"Src/*.cpp"
+    "Src/CAPI/*.cpp"
 	"Src/Util/*.cpp"
 )
 

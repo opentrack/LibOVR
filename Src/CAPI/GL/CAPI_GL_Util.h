@@ -33,7 +33,7 @@ limitations under the License.
 #include "../../Kernel/OVR_Log.h"
 
 #if defined(OVR_OS_WIN32)
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 #if defined(OVR_OS_MAC)

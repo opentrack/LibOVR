@@ -28,6 +28,10 @@ limitations under the License.
 // This file can be included twice, once with OVR_D3D_VERSION=10 and
 // once with OVR_D3D_VERSION=11.
 
+#ifdef __MINGW32__
+#   undef OVR_D3D_VERSION
+#   define OVR_D3D_VERSION 9
+#endif
 
 #ifndef OVR_D3D_VERSION
 #error define OVR_D3D_VERSION to 10 or 11
@@ -42,7 +46,7 @@ limitations under the License.
 #include "../../Kernel/OVR_Math.h"
 
 #if defined(OVR_OS_WIN32)
-#include <Windows.h>
+#include <windows.h>
 #include <comdef.h> // for _COM_SMARTPTR_TYPEDEF()
 
 #undef D3D_NS           // namespace
