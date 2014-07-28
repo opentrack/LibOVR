@@ -21,6 +21,10 @@ file( GLOB LIBOVR_FILES
 
 set(CRAP-O-LA
     Src/OVR_Common_HMDDevice.cpp
+    Src/OVR_Linux_HMDDevice.cpp
+    Src/OVR_Linux_HIDDevice.cpp
+    Src/OVR_Linux_DeviceManager.cpp
+    Src/OVR_OSX_HMDDevice.cpp
 )
 
 file(GLOB LIBOVR_BLACKLIST ${CRAP-O-LA})
@@ -28,14 +32,11 @@ list(REMOVE_ITEM LIBOVR_FILES ${LIBOVR_BLACKLIST})
 
 foreach(item ${LIBOVR_FILES})
     set(pat)
-    if(NOT APPLE)
-        set(pat "OSX")
+    if(APPLE)
+        set(pat "Linux|Win32|WinAPI")
     endif()
-    if(NOT WIN32)
-        set(pat "WinAPI|Win32")
-    endif()
-    if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        set(pat "Linux")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set(pat "Win32|WinAPI|OSX")
     endif()
     if(WIN32)
         set(pat "OSX|Linux|Pthread")
