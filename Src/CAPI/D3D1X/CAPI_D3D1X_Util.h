@@ -28,10 +28,6 @@ limitations under the License.
 // This file can be included twice, once with OVR_D3D_VERSION=10 and
 // once with OVR_D3D_VERSION=11.
 
-#ifdef __MINGW32__
-#   undef OVR_D3D_VERSION
-#   define OVR_D3D_VERSION 9
-#endif
 
 #ifndef OVR_D3D_VERSION
 #error define OVR_D3D_VERSION to 10 or 11
@@ -46,7 +42,8 @@ limitations under the License.
 #include "../../Kernel/OVR_Math.h"
 
 #if defined(OVR_OS_WIN32)
-#include <windows.h>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #include <comdef.h> // for _COM_SMARTPTR_TYPEDEF()
 
 #undef D3D_NS           // namespace
@@ -111,6 +108,12 @@ typedef D3D1X_(VIEWPORT)                        D3D1x_VIEWPORT;
 typedef D3D1X_(QUERY_DESC)                      D3D1x_QUERY_DESC;
 typedef D3D1X_(SHADER_BUFFER_DESC)              D3D1x_SHADER_BUFFER_DESC;
 typedef D3D1X_(SHADER_VARIABLE_DESC)            D3D1x_SHADER_VARIABLE_DESC;
+typedef D3D1X_(PRIMITIVE_TOPOLOGY)            D3D1x_PRIMITIVE_TOPOLOGY;
+static const int D3D1x_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT = D3D1X_(COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
+static const int D3D1x_COMMONSHADER_SAMPLER_SLOT_COUNT = D3D1X_(COMMONSHADER_SAMPLER_SLOT_COUNT);
+static const int D3D1x_SIMULTANEOUS_RENDER_TARGET_COUNT = D3D1X_(SIMULTANEOUS_RENDER_TARGET_COUNT);
+static const int D3D1x_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT = D3D1X_(IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
+static const int D3D1x_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT = D3D1X_(COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
 // Blob is the same
 typedef ID3D10Blob                 ID3D1xBlob;
 

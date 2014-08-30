@@ -47,9 +47,9 @@ public:
     virtual bool Initialize(const ovrRenderAPIConfig* apiConfig,
                             unsigned distortionCaps);
 
-    virtual void SubmitEye(int eyeId, ovrTexture* eyeTexture);
+    virtual void SubmitEye(int eyeId, const ovrTexture* eyeTexture);
 
-    virtual void EndFrame(bool swapBuffers, unsigned char* latencyTesterDrawColor, unsigned char* latencyTester2DrawColor);
+    virtual void EndFrame(bool swapBuffers);
 
     void         WaitUntilGpuIdle();
 
@@ -67,22 +67,32 @@ protected:
         virtual void Save();
         virtual void Restore();
         
+#ifdef OVR_OS_MAC
+        // Asking for Core Profile is equivalent to asking whether we have a
+        // 3.2+ context on mac.
+        bool isAtLeastOpenGL3();
+#endif
+
     protected:
-        void ApplyBool(GLenum Name, GLint Value);
+        void ApplyBool(GLenum Name, GLint Value, GLint index = -1);
         
     public:
         GLint GlMajorVersion;
         GLint GlMinorVersion;
         bool SupportsVao;
+        bool SupportsDrawBuffers;
         
         GLint Viewport[4];
         GLfloat ClearColor[4];
         GLint DepthTest;
         GLint CullFace;
+        GLint SRGB;
         GLint Program;
         GLint ActiveTexture;
         GLint TextureBinding;
-        GLint VertexArray;
+        GLint VertexArrayBinding;
+        GLint ElementArrayBufferBinding;
+        GLint ArrayBufferBinding;
         GLint FrameBufferBinding;
         
         GLint Blend;
@@ -140,6 +150,8 @@ protected:
     void renderLatencyQuad(unsigned char* latencyTesterDrawColor);
     void renderLatencyPixel(unsigned char* latencyTesterPixelColor);
 	
+    void renderEndFrame();
+
     Ptr<Texture>        pEyeTextures[2];
 
 	Ptr<Buffer>         DistortionMeshVBs[2];    // one per-eye
@@ -157,6 +169,7 @@ protected:
 	GLuint              LatencyVAO;
     Ptr<Buffer>         LatencyTesterQuadVB;
     Ptr<ShaderSet>      SimpleQuadShader;
+    Ptr<ShaderSet>      SimpleQuadGammaShader;
 
     Ptr<Texture>             CurRenderTarget;
     Array<Ptr<Texture> >     DepthBuffers;
