@@ -1,6 +1,6 @@
 Oculus SDK
 (C) Oculus VR, Inc. 2014. All Rights Reserved.
 
-The latest version of the Oculus SDK is available at http://developer.oculusvr.com.
+This repository aims for a Rift SDK usable on non-MSVC++ compilers.
 
-Please see the Oculus SDK Overview in the OculusSDK/Doc/ directory for more information.
+Build system used is now CMake for all platforms. That is, all that work in the particular SDK version.
