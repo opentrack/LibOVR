@@ -18,7 +18,15 @@ otherwise accompanies this software in either electronic or hard copy form.
 #ifndef OVR_dxgi_ovr_filter_h
 #define OVR_dxgi_ovr_filter_h
 
-#include <InitGuid.h>
+#if defined(__MINGW32__)
+#	define __in
+#	define __out
+#	define __reserved
+#	define __inout
+#	define __in_opt
+#endif
+
+#include <initguid.h>
 
 #define USERMODE_TEST_ROTATION 1
 
