@@ -15,7 +15,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 ************************************************************************************/
 
 #include <windows.h>
-#include <DbgHelp.h>
+#include <dbghelp.h>
 #include <malloc.h>
 
 #include "OVR_Win32_Dxgi_Display.h"
@@ -395,7 +395,7 @@ static void restoreFunction( PROC pfnHookAPIAddr, PBYTE oldData )
 	VirtualProtect((LPVOID)pfnHookAPIAddr, OLD_DATA_BACKUP_SIZE,                       
 		PAGE_EXECUTE_READWRITE, &oldProtect);
 
-	memcpy(pfnHookAPIAddr, oldData, OLD_DATA_BACKUP_SIZE);  
+	memcpy(pfnHookAPIAddr, oldData, OLD_DATA_BACKUP_SIZE);
 
 	VirtualProtect((LPVOID)pfnHookAPIAddr, OLD_DATA_BACKUP_SIZE, oldProtect, NULL);  
 }
@@ -434,7 +434,7 @@ static void restoreFunction( PROC pfnHookAPIAddr, PBYTE oldData )
 	VirtualProtect((LPVOID)pfnHookAPIAddr, jmpSize,                       
 		PAGE_EXECUTE_READWRITE, &oldProtect);
 
-	memcpy(pfnHookAPIAddr, oldData, jmpSize);  
+	memcpy((void*)pfnHookAPIAddr, (void*)oldData, jmpSize);  
 
 	VirtualProtect((LPVOID)pfnHookAPIAddr, jmpSize, oldProtect, NULL);  
 }
@@ -450,7 +450,7 @@ static void setFunction( PROC pfnHookAPIAddr, PROC replacementFunction, PBYTE ol
 	VirtualProtect((LPVOID)pfnHookAPIAddr, jmpSize,                       
 		PAGE_EXECUTE_READWRITE, &oldProtect);
 
-	memcpy(oldData, pfnHookAPIAddr, jmpSize);
+	memcpy((void*)oldData, (void*)pfnHookAPIAddr, jmpSize);
 
 	PBYTE functionData = (PBYTE)pfnHookAPIAddr;
 	memcpy( oldData, functionData, jmpSize );
