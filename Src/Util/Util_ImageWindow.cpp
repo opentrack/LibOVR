@@ -30,7 +30,7 @@ limitations under the License.
 #if defined(OVR_OS_WIN32)
 
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <windows.h>
 
 #include "DWrite.h"
 

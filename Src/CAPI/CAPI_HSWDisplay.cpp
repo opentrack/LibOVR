@@ -47,7 +47,7 @@ limitations under the License.
 #if HSWDISPLAY_DEBUGGING
     OVR_DISABLE_ALL_MSVC_WARNINGS()
     #include <winsock2.h>
-    #include <Windows.h>
+    #include <windows.h>
     OVR_RESTORE_ALL_MSVC_WARNINGS()
 #endif
 

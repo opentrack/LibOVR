@@ -24,7 +24,7 @@ limitations under the License.
 
 *************************************************************************************/
 
-#include <Windows.h>
+#include <windows.h>
 
 #include "OVR_Win32_Display.h"
 #include "OVR_Win32_Dxgi_Display.h"
