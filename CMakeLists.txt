@@ -14,7 +14,6 @@ file( GLOB LIBOVR_FILES
 	"Src/Kernel/*.cpp"
 	"Src/*.cpp"
 	"Src/CAPI/*.cpp"
-	"Src/CAPI/GL/*.cpp"
 	"Src/Util/*.cpp"
 	"Src/Displays/*.cpp"
 	"Src/Service/*.cpp"
