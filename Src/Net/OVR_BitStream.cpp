@@ -27,7 +27,7 @@ limitations under the License.
 #include "OVR_BitStream.h"
 
 #ifdef OVR_OS_WIN32
-#include <winsock2.h>
+#include <WinSock2.h>
 #else
 #include <arpa/inet.h>
 #endif

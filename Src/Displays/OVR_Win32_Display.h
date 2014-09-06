@@ -28,7 +28,6 @@ limitations under the License.
 #define OVR_Win32_Display_h
 
 #include "OVR_Display.h"
-#include <wbemcli.h>
 
 namespace OVR { namespace Win32 {
 

@@ -15,9 +15,8 @@ otherwise accompanies this software in either electronic or hard copy form.
 ************************************************************************************/
 
 #include <windows.h>
-#include <dbghelp.h>
-//#include <atlbase.h>
-//#include <atlconv.h>
+#include <DbgHelp.h>
+#include <malloc.h>
 
 #include "OVR_Win32_Dxgi_Display.h"
 
@@ -30,42 +29,11 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 #pragma comment(lib, "DbgHelp.lib")
 
-#define __in
-#define __out
-#define __inout
-#define __in_opt
-#define __reserved
-
-// from http://svn.apache.org/repos/asf/incubator/log4cxx/tags/v0_9_5/include/log4cxx/helpers/tchar.h
-
-class Convert
-{
-public:
-	static wchar_t * ansiToUnicode(wchar_t * dst, const char * src)
-	{
-		::mbstowcs(dst, src, 512);
-		return dst;
-	}
-
-	static char * unicodeToAnsi(char * dst, const wchar_t * src)
-	{
-		::wcstombs(dst, src, 512);
-		return dst;
-	}
-};
-
-#ifndef USES_CONVERSION
-	#include <malloc.h>
-	#define USES_CONVERSION void * _dst = _alloca(1024);
-#endif
-
-#ifndef W2A
-#define W2A(src) Convert::unicodeToAnsi((char *)_dst, src)
-#endif
-
-#ifndef A2W
-#define A2W(src) Convert::ansiToUnicode((wchar_t *)_dst, src)
-#endif
+#define WIDE_TO_MB(wideString) \
+    int wideString ## _slen = (int)wcslen(wideString); \
+    char* wideString ## _cstr = (char*)alloca(wideString ## _slen * 2); \
+    int count = WideCharToMultiByte(GetACP(), 0, wideString, -1, wideString ## _cstr, wideString ## _slen * 2, NULL, NULL); \
+    wideString ## _cstr[count] = '\0';
 
 // Forward declarations
 // These functions are implemented in OVR_Win32_DisplayDevice.cpp.
@@ -151,22 +119,63 @@ TryAgainWOW64:
 
 #define OLD_DATA_BACKUP_SIZE 16
 
-WinLoadLibraryA			oldProcA = NULL;
-WinLoadLibraryExA		oldProcExA = NULL;
-WinLoadLibraryW			oldProcW = NULL;
-WinLoadLibraryExW		oldProcExW = NULL;
-WinGetModuleHandleExA	oldProcModExA = NULL;
-WinGetModuleHandleExW	oldProcModExW = NULL;
-WinDirect3DCreate9		oldDirectX9Create = NULL;
-BYTE					oldDirectX9CreateData[OLD_DATA_BACKUP_SIZE];
-WinDirect3DCreate9Ex	oldDirectX9ExCreate = NULL;
-BYTE					oldDirectX9ExCreateData[OLD_DATA_BACKUP_SIZE];
-WinCreateDXGIFactory	oldCreateDXGIFactory = NULL;
-BYTE					oldCreateDXGIFactoryData[OLD_DATA_BACKUP_SIZE];
-WinCreateDXGIFactory1	oldCreateDXGIFactory1 = NULL;
-BYTE					oldCreateDXGIFactory1Data[OLD_DATA_BACKUP_SIZE];
-WinCreateDXGIFactory2   oldCreateDXGIFactory2 = NULL;
-BYTE					oldCreateDXGIFactory2Data[OLD_DATA_BACKUP_SIZE];
+static WinLoadLibraryA       oldProcA = NULL; // Note: This is used to indicate that the shim is in place
+static WinLoadLibraryExA     oldProcExA = NULL;
+static WinLoadLibraryW       oldProcW = NULL;
+static WinLoadLibraryExW     oldProcExW = NULL;
+static WinGetModuleHandleExA oldProcModExA = NULL;
+static WinGetModuleHandleExW oldProcModExW = NULL;
+static WinDirect3DCreate9    oldDirectX9Create = NULL;
+static BYTE                  oldDirectX9CreateData[OLD_DATA_BACKUP_SIZE];
+static WinDirect3DCreate9Ex  oldDirectX9ExCreate = NULL;
+static BYTE                  oldDirectX9ExCreateData[OLD_DATA_BACKUP_SIZE];
+static WinCreateDXGIFactory	 oldCreateDXGIFactory = NULL;
+static BYTE                  oldCreateDXGIFactoryData[OLD_DATA_BACKUP_SIZE];
+static WinCreateDXGIFactory1 oldCreateDXGIFactory1 = NULL;
+static BYTE                  oldCreateDXGIFactory1Data[OLD_DATA_BACKUP_SIZE];
+static WinCreateDXGIFactory2 oldCreateDXGIFactory2 = NULL;
+static BYTE                  oldCreateDXGIFactory2Data[OLD_DATA_BACKUP_SIZE];
+
+#define NUM_LOADER_LIBS 4
+
+static const char* loaderLibraryList[NUM_LOADER_LIBS] = {
+    "kernel32.dll",
+    "api-ms-win-core-libraryloader-l1-2-0.dll",
+    "api-ms-win-core-libraryloader-l1-1-0.dll",
+    "api-ms-win-core-libraryloader-l1-1-1.dll"
+};
+
+enum ShimedLibraries
+{
+    ShimLibDXGI      = 0,
+    ShimLibD3D9      = 1,
+    ShimLibD3D11     = 2,
+    ShimLibDXGIDebug = 3,
+    ShimLibD3D10Core = 4,
+    ShimLibD3D10     = 5,
+    ShimLibGL        = 6,
+    ShimCountMax     = 7
+};
+
+static const char* dllList[ShimCountMax] = {
+    "dxgi.dll",
+    "d3d9.dll",
+    "d3d11.dll",
+    "dxgidebug.dll",
+    "d3d10core.dll",
+    "d3d10.dll",
+    "opengl32.dll"
+};
+
+static HINSTANCE oldLoaderInstances[ShimCountMax] = { NULL };
+static PROC oldLoaderProcA[ShimCountMax][NUM_LOADER_LIBS] = { { NULL } };
+static PROC oldLoaderProcW[ShimCountMax][NUM_LOADER_LIBS] = { { NULL } };
+static PROC oldLoaderProcExA[ShimCountMax][NUM_LOADER_LIBS] = { { NULL } };
+static PROC oldLoaderProcExW[ShimCountMax][NUM_LOADER_LIBS] = { { NULL } };
+static PROC oldLoaderProcModExA[ShimCountMax][NUM_LOADER_LIBS] = { { NULL } };
+static PROC oldLoaderProcModExW[ShimCountMax][NUM_LOADER_LIBS] = { { NULL } };
+
+static HMODULE rtFilterModule = NULL;
 
 static bool checkForOverride( LPCSTR libFileName, OVRTargetAPI& targetApi )
 {
@@ -286,15 +295,15 @@ static HMODULE
 	__in LPCWSTR lpLibFileName
 	)
 {
-	USES_CONVERSION;
+    WIDE_TO_MB(lpLibFileName); // Convert lpLibFileName -> lpLibFileName_cstr
 
 	OVRTargetAPI targetAPI = DirectX;
 
-	bool needShim = checkForOverride( W2A( lpLibFileName ), targetAPI );
+    bool needShim = checkForOverride( lpLibFileName_cstr, targetAPI );
 	if( !needShim )	
 		return (*oldProcW)( lpLibFileName );
 
-	return createShim( W2A( lpLibFileName ), targetAPI );
+    return createShim( lpLibFileName_cstr, targetAPI );
 }
 
 static HMODULE
@@ -324,16 +333,16 @@ static HMODULE
 	__in       DWORD dwFlags
 	)
 {
-	USES_CONVERSION;
+    WIDE_TO_MB(lpLibFileName); // Convert lpLibFileName -> lpLibFileName_cstr
 
 	OVRTargetAPI targetAPI = DirectX;
 
-	bool needShim = checkForOverride( W2A( lpLibFileName ), targetAPI );
+	bool needShim = checkForOverride( lpLibFileName_cstr, targetAPI );
 	if( !needShim )
 		return (*oldProcExW)( lpLibFileName, hFile, dwFlags );
 
 	// FIXME: Don't throw away the flags parameter
-	return createShim( W2A( lpLibFileName ), targetAPI );
+	return createShim( lpLibFileName_cstr, targetAPI );
 }
 
 static BOOL WINAPI OVRGetModuleHandleExA(
@@ -361,17 +370,17 @@ static BOOL WINAPI OVRGetModuleHandleExW(
 	__out    HMODULE *phModule
 	)
 {
-	USES_CONVERSION;
+    WIDE_TO_MB(lpModuleName); // Convert lpModuleName -> lpModuleName_cstr
 
-	OVRTargetAPI targetAPI = DirectX;
+    OVRTargetAPI targetAPI = DirectX;
 
-	bool needShim = checkForOverride( W2A( lpModuleName ), targetAPI );
+	bool needShim = checkForOverride( lpModuleName_cstr, targetAPI );
 	if( !needShim )
 	{
 		return (*oldProcModExW)( dwFlags, lpModuleName, phModule );
 	}
 
-	*phModule = createShim( W2A( lpModuleName ), targetAPI );
+	*phModule = createShim( lpModuleName_cstr, targetAPI );
 
 	return TRUE;
 }
@@ -425,7 +434,7 @@ static void restoreFunction( PROC pfnHookAPIAddr, PBYTE oldData )
 	VirtualProtect((LPVOID)pfnHookAPIAddr, jmpSize,                       
 		PAGE_EXECUTE_READWRITE, &oldProtect);
 
-	memcpy(reinterpret_cast<void*>(pfnHookAPIAddr), reinterpret_cast<void*>(oldData), jmpSize);  
+	memcpy(pfnHookAPIAddr, oldData, jmpSize);  
 
 	VirtualProtect((LPVOID)pfnHookAPIAddr, jmpSize, oldProtect, NULL);  
 }
@@ -441,7 +450,7 @@ static void setFunction( PROC pfnHookAPIAddr, PROC replacementFunction, PBYTE ol
 	VirtualProtect((LPVOID)pfnHookAPIAddr, jmpSize,                       
 		PAGE_EXECUTE_READWRITE, &oldProtect);
 
-	memcpy(reinterpret_cast<void*>(oldData), reinterpret_cast<void*>(pfnHookAPIAddr), jmpSize);
+	memcpy(oldData, pfnHookAPIAddr, jmpSize);
 
 	PBYTE functionData = (PBYTE)pfnHookAPIAddr;
 	memcpy( oldData, functionData, jmpSize );
@@ -502,7 +511,6 @@ HRESULT APIENTRY OVRDirect3DCreate9Ex(UINT SDKVersion, void** aDevice)
     }
     else
     {
-        HMODULE rtFilterModule = (*oldProcA)(RTFilter);
         WinDirect3DCreate9Ex createFunction = (WinDirect3DCreate9Ex)GetProcAddress(rtFilterModule, "Direct3DCreate9Ex");
         result = (*createFunction)(SDKVersion, aDevice);
     }
@@ -538,7 +546,6 @@ HRESULT APIENTRY OVRCreateDXGIFactory(
     }
     else
     {
-        HMODULE rtFilterModule = (*oldProcA)(RTFilter);
         WinCreateDXGIFactory createFunction = (WinCreateDXGIFactory)GetProcAddress(rtFilterModule, "CreateDXGIFactory");
         result = (*createFunction)(riid, ppFactory);
     }
@@ -565,7 +572,6 @@ HRESULT APIENTRY OVRCreateDXGIFactory1(
     }
     else
     {
-        HMODULE rtFilterModule = (*oldProcA)(RTFilter);
         WinCreateDXGIFactory1 createFunction = (WinCreateDXGIFactory1)GetProcAddress(rtFilterModule, "CreateDXGIFactory1");
         result = (*createFunction)(riid, ppFactory);
     }
@@ -593,7 +599,6 @@ HRESULT APIENTRY OVRCreateDXGIFactory2(
     }
     else
     {
-        HMODULE rtFilterModule = (*oldProcA)(RTFilter);
         WinCreateDXGIFactory2 createFunction = (WinCreateDXGIFactory2)GetProcAddress(rtFilterModule, "CreateDXGIFactory2");
         result = (*createFunction)(flags, riid, ppFactory);
     }
@@ -696,42 +701,26 @@ static PROC SetProcAddressA(
 	return pfnHookAPIAddr;
 }
 
-enum ShimedLibraries
-{
-	ShimLibDXGI =		 0,
-	ShimLibD3D9 =		 1,
-	ShimLibD3D11 =		 2,
-	ShimLibDXGIDebug =	 3,
-	ShimLibD3D10Core =	 4,
-	ShimLibD3D10 =		 5,
-	ShimLibGL =			 6,
-	ShimCountMax =		 7
-};
 
-void checkUMDriverOverrides( void* context )
+void checkUMDriverOverrides(void* context)
 {
 	lastContext = context;
 	if( oldProcA == NULL )
 	{
-		char* dllList[ShimCountMax] = { "dxgi.dll", "d3d9.dll", "d3d11.dll", "dxgidebug.dll", "d3d10core.dll", "d3d10.dll", "opengl32.dll" };
-
 		PreloadLibraryRTFn loadFunc = NULL;
 
 		for( int i = 0; i < ShimCountMax; ++i )
 		{
-			HINSTANCE hInst = GetModuleHandleA( dllList[i] );
-			if( hInst == NULL )
+            HINSTANCE hInst = NULL;
+			try
 			{
-				try
-				{
-					hInst = LoadLibraryA(dllList[i]);
-				}
-				catch(...)
-				{
-
-				}
-				
+				hInst = LoadLibraryA(dllList[i]);
 			}
+			catch(...)
+			{
+			}
+
+            oldLoaderInstances[i] = hInst;
 
 			if( hInst )
 			{
@@ -751,52 +740,75 @@ void checkUMDriverOverrides( void* context )
 						break;
 				}
 
-				char* loaderLibraryList[4] = {"kernel32.dll", "api-ms-win-core-libraryloader-l1-2-0.dll", "api-ms-win-core-libraryloader-l1-1-0.dll", "api-ms-win-core-libraryloader-l1-1-1.dll"};
-
-				for( int j = 0; j < 4; ++j )
-				{
-					char* loaderLibrary = loaderLibraryList[j];
+                for (int j = 0; j < NUM_LOADER_LIBS; ++j)
+                {
+                    const char* loaderLibrary = loaderLibraryList[j];
 
 					PROC temp = NULL;
-					temp = SetProcAddressA( hInst, loaderLibrary, "LoadLibraryA", (PROC)OVRLoadLibraryA  );
-					if( !oldProcA )
-						oldProcA = (WinLoadLibraryA)temp;
+                    temp = SetProcAddressA(hInst, loaderLibrary, "LoadLibraryA", (PROC)OVRLoadLibraryA);
+                    if (!oldProcA)
+                    {
+                        oldProcA = (WinLoadLibraryA)temp;
+                    }
+                    oldLoaderProcA[i][j] = temp;
 
-					temp = SetProcAddressA( hInst, loaderLibrary, "LoadLibraryW", (PROC)OVRLoadLibraryW  );
-					if( !oldProcW )
-						oldProcW = (WinLoadLibraryW)temp;
+                    temp = SetProcAddressA(hInst, loaderLibrary, "LoadLibraryW", (PROC)OVRLoadLibraryW);
+                    if (!oldProcW)
+                    {
+                        oldProcW = (WinLoadLibraryW)temp;
+                    }
+                    oldLoaderProcW[i][j] = temp;
 
-					temp = SetProcAddressA( hInst, loaderLibrary, "LoadLibraryExA", (PROC)OVRLoadLibraryExA  );
-					if( !oldProcExA )
-						oldProcExA = (WinLoadLibraryExA)temp;
+                    temp = SetProcAddressA(hInst, loaderLibrary, "LoadLibraryExA", (PROC)OVRLoadLibraryExA);
+                    if (!oldProcExA)
+                    {
+                        oldProcExA = (WinLoadLibraryExA)temp;
+                    }
+                    oldLoaderProcExA[i][j] = temp;
 
-					temp = SetProcAddressA( hInst, loaderLibrary, "LoadLibraryExW", (PROC)OVRLoadLibraryExW  );
-					if( !oldProcExW )
-						oldProcExW = (WinLoadLibraryExW)temp;
+                    temp = SetProcAddressA(hInst, loaderLibrary, "LoadLibraryExW", (PROC)OVRLoadLibraryExW);
+                    if (!oldProcExW)
+                    {
+                        oldProcExW = (WinLoadLibraryExW)temp;
+                    }
+                    oldLoaderProcExW[i][j] = temp;
 
-					temp = SetProcAddressA( hInst, loaderLibrary, "GetModuleHandleExA", (PROC)OVRGetModuleHandleExA );
-					if( !oldProcModExA )
-						oldProcModExA = (WinGetModuleHandleExA)temp;
+                    temp = SetProcAddressA(hInst, loaderLibrary, "GetModuleHandleExA", (PROC)OVRGetModuleHandleExA);
+                    if (!oldProcModExA)
+                    {
+                        oldProcModExA = (WinGetModuleHandleExA)temp;
+                    }
+                    oldLoaderProcModExA[i][j] = temp;
 
-					temp = SetProcAddressA( hInst, loaderLibrary, "GetModuleHandleExW", (PROC)OVRGetModuleHandleExW );
-					if( !oldProcModExW )
-						oldProcModExW = (WinGetModuleHandleExW)temp;
-				}
+                    temp = SetProcAddressA(hInst, loaderLibrary, "GetModuleHandleExW", (PROC)OVRGetModuleHandleExW);
+                    if (!oldProcModExW)
+                    {
+                        oldProcModExW = (WinGetModuleHandleExW)temp;
+                    }
+                    oldLoaderProcModExW[i][j] = temp;
+                }
 
-				if( loadFunc == NULL )
-					loadFunc = (PreloadLibraryRTFn)GetProcAddress( hInst, "PreloadLibraryRT" );
+                if (loadFunc == NULL)
+                {
+                    loadFunc = (PreloadLibraryRTFn)GetProcAddress(hInst, "PreloadLibraryRT");
+                }
 			}
 		}
 
-		HMODULE rtFilterModule = (*oldProcA)( RTFilter );
+		rtFilterModule = (*oldProcA)( RTFilter );
 
-		if( loadFunc == NULL )
-			loadFunc = (PreloadLibraryRTFn)GetProcAddress( rtFilterModule, "PreloadLibraryRT" );
-		IsCreatingBackBuffer backBufferFunc = (IsCreatingBackBuffer)GetProcAddress( rtFilterModule, "OVRIsCreatingBackBuffer" );
-		ShouldVSync	shouldVSyncFunc = (ShouldVSync)GetProcAddress( rtFilterModule, "OVRShouldVSync" );
+        IsCreatingBackBuffer backBufferFunc = NULL;
+        ShouldVSync	shouldVSyncFunc = NULL;
 
-		if( loadFunc )
-		{
+        if (rtFilterModule != NULL)
+        {
+            loadFunc = (PreloadLibraryRTFn)GetProcAddress(rtFilterModule, "PreloadLibraryRT");
+            backBufferFunc = (IsCreatingBackBuffer)GetProcAddress(rtFilterModule, "OVRIsCreatingBackBuffer");
+            shouldVSyncFunc = (ShouldVSync)GetProcAddress(rtFilterModule, "OVRShouldVSync");
+        }
+
+        if (loadFunc != NULL)
+        {
 			appDriver.version = 1;
 			appDriver.context = lastContext;
 
@@ -822,4 +834,100 @@ void checkUMDriverOverrides( void* context )
 			(*loadFunc)( &appDriver );
 		}
 	}
+}
+
+void clearUMDriverOverrides()
+{
+    if (oldProcA != NULL)
+    {
+        // Unpatch all the things.
+
+        if (oldCreateDXGIFactory)
+        {
+            restoreFunction((PROC)oldCreateDXGIFactory, oldCreateDXGIFactoryData);
+        }
+        if (oldCreateDXGIFactory1)
+        {
+            restoreFunction((PROC)oldCreateDXGIFactory1, oldCreateDXGIFactory1Data);
+        }
+        if (oldCreateDXGIFactory2)
+        {
+            restoreFunction((PROC)oldCreateDXGIFactory2, oldCreateDXGIFactory2Data);
+        }
+        if (oldDirectX9Create)
+        {
+            restoreFunction((PROC)oldDirectX9Create, oldDirectX9CreateData);
+        }
+        if (oldDirectX9ExCreate)
+        {
+            restoreFunction((PROC)oldDirectX9ExCreate, oldDirectX9ExCreateData);
+        }
+        if (oldCreateDXGIFactory2)
+        {
+            restoreFunction((PROC)oldCreateDXGIFactory2, oldCreateDXGIFactory2Data);
+        }
+
+        for (int i = 0; i < ShimCountMax; ++i)
+        {
+            HINSTANCE hInst = oldLoaderInstances[i];
+
+            if (hInst != NULL)
+            {
+                for (int j = 0; j < NUM_LOADER_LIBS; ++j)
+                {
+                    const char* loaderLibrary = loaderLibraryList[j];
+
+                    if (oldLoaderProcA[j])
+                    {
+                        SetProcAddressA(hInst, loaderLibrary, "LoadLibraryA", oldLoaderProcA[i][j]);
+                    }
+                    if (oldLoaderProcW[j])
+                    {
+                        SetProcAddressA(hInst, loaderLibrary, "LoadLibraryW", oldLoaderProcW[i][j]);
+                    }
+                    if (oldLoaderProcExA[j])
+                    {
+                        SetProcAddressA(hInst, loaderLibrary, "LoadLibraryExA", oldLoaderProcExA[i][j]);
+                    }
+                    if (oldLoaderProcExW[j])
+                    {
+                        SetProcAddressA(hInst, loaderLibrary, "LoadLibraryExW", oldLoaderProcExW[i][j]);
+                    }
+                    if (oldLoaderProcModExA[j])
+                    {
+                        SetProcAddressA(hInst, loaderLibrary, "GetModuleHandleExA", oldLoaderProcModExA[i][j]);
+                    }
+                    if (oldLoaderProcModExW[j])
+                    {
+                        SetProcAddressA(hInst, loaderLibrary, "GetModuleHandleExW", oldLoaderProcModExW[i][j]);
+                    }
+                }
+
+                FreeLibrary(hInst);
+            }
+        }
+
+        if (rtFilterModule != NULL)
+        {
+			LPFNCANUNLOADNOW pfnCanUnloadNow = (LPFNCANUNLOADNOW)GetProcAddress(rtFilterModule, "DllCanUnloadNow");
+			if (pfnCanUnloadNow && pfnCanUnloadNow() == S_OK)
+			{
+				FreeLibrary(rtFilterModule);
+				rtFilterModule = NULL;
+			}
+        }
+
+        oldProcA = NULL;
+        oldProcExA = NULL;
+        oldProcW = NULL;
+        oldProcExW = NULL;
+        oldProcModExA = NULL;
+        oldProcModExW = NULL;
+        oldDirectX9Create = NULL;
+        oldDirectX9ExCreate = NULL;
+        oldCreateDXGIFactory = NULL;
+        oldCreateDXGIFactory1 = NULL;
+        oldCreateDXGIFactory2 = NULL;
+        lastContext = NULL;
+    }
 }

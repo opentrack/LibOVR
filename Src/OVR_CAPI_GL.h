@@ -27,7 +27,7 @@ otherwise accompanies this software in either electronic or hard copy form.
     #ifndef WIN32_LEAN_AND_MEAN
     #define WIN32_LEAN_AND_MEAN
     #endif
-    #include <windows.h>
+    #include <Windows.h>
     #include <GL/gl.h>
 #elif defined(OVR_OS_MAC)
     #include <OpenGL/gl3.h>

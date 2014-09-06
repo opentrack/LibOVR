@@ -30,9 +30,9 @@ limitations under the License.
 #if defined(OVR_OS_WIN32)
 
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include <Windows.h>
 
-#include "dwrite.h"
+#include "DWrite.h"
 
 typedef HRESULT (WINAPI *D2D1CreateFactoryFn)(
 	_In_      D2D1_FACTORY_TYPE,

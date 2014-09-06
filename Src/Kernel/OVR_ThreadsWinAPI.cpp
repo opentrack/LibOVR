@@ -886,9 +886,8 @@ bool Thread::Start(ThreadState initialState)
     ExitCode        = 0;
     SuspendCount    = 0;
     ThreadFlags     = (initialState == Running) ? 0 : OVR_THREAD_START_SUSPENDED;
-
     ThreadHandle = (HANDLE) _beginthreadex(0, (unsigned)StackSize,
-                   Thread_Win32StartFn, this, 0, (unsigned*)&IdValue);
+                                           Thread_Win32StartFn, this, 0, (unsigned*)&IdValue);
 
     // Failed? Fail the function
     if (ThreadHandle == 0)
@@ -990,7 +989,7 @@ bool Thread::MSleep(unsigned msecs)
 
 void Thread::SetThreadName( const char* name )
 {
-#if (!defined(OVR_BUILD_SHIPPING) || defined(OVR_BUILD_PROFILING)) && !defined(__MINGW32__)
+#if !defined(OVR_BUILD_SHIPPING) || defined(OVR_BUILD_PROFILING)
     // Looks ugly, but it is the recommended way to name a thread.
     typedef struct tagTHREADNAME_INFO {
         DWORD dwType;     // Must be 0x1000

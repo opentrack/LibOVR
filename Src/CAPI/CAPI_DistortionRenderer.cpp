@@ -26,7 +26,7 @@ limitations under the License.
 
 #include "CAPI_DistortionRenderer.h"
 
-#if defined (OVR_OS_WIN32) && !defined(__MINGW32__)
+#if defined (OVR_OS_WIN32)
 
 // TBD: Move to separate config file that handles back-ends.
 #define OVR_D3D_VERSION 11
@@ -57,7 +57,7 @@ DistortionRenderer::CreateFunc DistortionRenderer::APICreateRegistry[ovrRenderAP
     0, // None
     &GL::DistortionRenderer::Create,
     0, // Android_GLES
-#if defined (OVR_OS_WIN32) && !defined(__MINGW32__)
+#if defined (OVR_OS_WIN32)
     &D3D9::DistortionRenderer::Create,
     &D3D10::DistortionRenderer::Create,
     &D3D11::DistortionRenderer::Create
@@ -99,7 +99,6 @@ double DistortionRenderer::WaitTillTime(double absTime)
         return 0.0;
 
     double newTime = initialTime;
-    volatile int i;
 
     while (newTime < absTime)
     {
@@ -124,7 +123,7 @@ double DistortionRenderer::WaitTillTime(double absTime)
             if (sleptTime > remainingWaitTime)
             {
                 OVR_DEBUG_LOG_TEXT(
-                    ("[DistortionRenderer::FlushGpuAndWaitTillTime] Sleep interval too long: %f\n", sleptTime));
+                    ("[DistortionRenderer::WaitTillTime] Sleep interval too long: %f\n", sleptTime));
             }
             else
             {
@@ -135,9 +134,9 @@ double DistortionRenderer::WaitTillTime(double absTime)
         else
 #endif
         {
-            for (int j = 0; j < 50; j++)
-                i = 0;
-        }			
+            for (int j = 0; j < 5; j++)
+                OVR_PROCESSOR_PAUSE();
+        }
 
         newTime = ovr_GetTimeInSeconds();
     }

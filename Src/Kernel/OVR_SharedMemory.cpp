@@ -30,10 +30,8 @@ limitations under the License.
 #include "OVR_String.h"
 #include "OVR_Array.h"
 
-#undef new
-
 #if defined(OVR_OS_WIN32) && !defined(OVR_FAKE_SHAREDMEMORY)
-#include <sddl.h> // ConvertStringSecurityDescriptorToSecurityDescriptor
+#include <Sddl.h> // ConvertStringSecurityDescriptorToSecurityDescriptor
 #endif // OVR_OS_WIN32
 
 #if (defined(OVR_OS_LINUX) || defined(OVR_OS_MAC)) && !defined(OVR_FAKE_SHAREDMEMORY)

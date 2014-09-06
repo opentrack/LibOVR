@@ -408,7 +408,7 @@ const uint8_t* HSWDisplay::GetDefaultTexture(size_t& TextureSize)
 // ***** HSWDisplay factory
 //
 
-#if defined (OVR_OS_WIN32) && !defined(__MINGW32__)
+#if defined (OVR_OS_WIN32)
     #define OVR_D3D_VERSION 9
     #include "D3D1X/CAPI_D3D9_HSWDisplay.h"
     #undef  OVR_D3D_VERSION
@@ -439,7 +439,7 @@ OVR::CAPI::HSWDisplay* OVR::CAPI::HSWDisplay::Factory(ovrRenderAPIType apiType, 
             pHSWDisplay = new OVR::CAPI::GL::HSWDisplay(apiType, hmd, renderState);
             break;
 
-    #if defined(OVR_OS_WIN32) && !defined(__MINGW32__)
+    #if defined(OVR_OS_WIN32)
         case ovrRenderAPI_D3D9:
             pHSWDisplay = new OVR::CAPI::D3D9::HSWDisplay(apiType, hmd, renderState);
             break;
