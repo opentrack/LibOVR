@@ -30,7 +30,7 @@ limitations under the License.
 #if defined (OVR_OS_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <MMSystem.h>
+#include <mmsystem.h>
 #elif defined(OVR_OS_ANDROID)
 #include <time.h>
 #include <android/log.h>

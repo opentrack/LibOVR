@@ -32,7 +32,7 @@ limitations under the License.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "DWrite.h"
+#include "dwrite.h"
 
 typedef HRESULT (WINAPI *D2D1CreateFactoryFn)(
 	_In_      D2D1_FACTORY_TYPE,

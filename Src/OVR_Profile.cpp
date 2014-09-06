@@ -40,7 +40,7 @@ limitations under the License.
 #ifdef OVR_OS_WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <Shlobj.h>
+#include <shlobj.h>
 #else
 #include <dirent.h>
 #include <sys/stat.h>

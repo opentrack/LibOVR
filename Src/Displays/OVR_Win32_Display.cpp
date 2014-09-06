@@ -34,8 +34,8 @@ limitations under the License.
 #include <string.h>
 #include <stdlib.h>
 #include <winioctl.h>
-#include <SetupAPI.h>
-#include <Mmsystem.h>
+#include <setupapi.h>
+#include <mmsystem.h>
 #include <conio.h>
 
 #ifdef OVR_COMPAT_EDID_VIA_WMI

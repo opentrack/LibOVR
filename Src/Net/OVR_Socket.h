@@ -36,8 +36,8 @@ limitations under the License.
 
 // OS-specific socket headers
 #if defined(OVR_OS_WIN32)
-#include <WinSock2.h>
-#include <WS2tcpip.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #else

@@ -30,7 +30,7 @@ limitations under the License.
 #include "../Kernel/OVR_Threads.h" // Thread::MSleep
 #include "../Kernel/OVR_Log.h"
 
-#include <Winsock2.h>
+#include <winsock2.h>
 
 namespace OVR { namespace Net {
 

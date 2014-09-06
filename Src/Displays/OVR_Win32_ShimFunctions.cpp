@@ -38,13 +38,13 @@ extern void clearUMDriverOverrides();
 #include <tchar.h>
 #include <string.h>
 #include <stdlib.h>
-#include <WinSock2.h>
-#include <WS2tcpip.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winioctl.h>
-#include <SetupAPI.h>
-#include <Mmsystem.h>
+#include <setupapi.h>
+#include <mmsystem.h>
 #include <conio.h>
 
 

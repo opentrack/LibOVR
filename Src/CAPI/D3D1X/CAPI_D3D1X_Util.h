@@ -78,7 +78,7 @@ limitations under the License.
     #define D3D11_COMMA_0               , 0
     #define IID_ID3D1xShaderReflection  IID_ID3D11ShaderReflection
     #include <d3d11.h>
-    #include <D3D11Shader.h>
+    #include <d3d11shader.h>
 #endif
 #endif
 
