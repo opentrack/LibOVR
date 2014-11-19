@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project( LibOVR )
 
-add_definitions(-DUNICODE -D_UNICODE)
+add_definitions(-DUNICODE -D_UNICODE -DMINGW_HAS_SECURE_API)
 set( LIBOVR_INC_DIR 
 	"${CMAKE_CURRENT_SOURCE_DIR}/Src"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Include" )
