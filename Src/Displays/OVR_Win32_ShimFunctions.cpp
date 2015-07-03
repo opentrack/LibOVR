@@ -43,7 +43,7 @@ extern void clearUMDriverOverrides();
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winioctl.h>
-#include <setupapi.h>
+//#include <setupapi.h>
 #include <mmsystem.h>
 #include <conio.h>
 
