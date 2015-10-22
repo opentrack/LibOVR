@@ -1,6 +1,5 @@
-Oculus SDK
-(C) Oculus VR, Inc. 2014. All Rights Reserved.
+This is stripped-down LibOVR that builds on mingw-w64 and MSVC. There's
+no graphics rendering stuff, merely pose estimation that opentrack
+needs.
 
-This repository aims for a Rift SDK usable on non-MSVC++ compilers.
-
-Build system used is now CMake for all platforms. That is, all that work in the particular SDK version.
+The mess is getting harder to port to mingw/GNU with each release.
