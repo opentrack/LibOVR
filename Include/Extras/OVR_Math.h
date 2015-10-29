@@ -347,7 +347,7 @@ inline float Asin(float x)   { return (x > 1.0f) ? MATH_FLOAT_PIOVER2 : (x < -1.
 inline double Asin(double x) { return (x > 1.0) ? MATH_DOUBLE_PIOVER2 : (x < -1.0) ? -MATH_DOUBLE_PIOVER2 : asin(x); }
 
 #ifdef __GNUC__
-#   include <cmath>
+// pulled from math.h
 #else
 #   if defined(_MSC_VER)
     inline int isnan(double x) { return ::_isnan(x); }
