@@ -346,10 +346,14 @@ inline double Acos(double x) { return (x > 1.0) ? 0.0 : (x < -1.0) ? MATH_DOUBLE
 inline float Asin(float x)   { return (x > 1.0f) ? MATH_FLOAT_PIOVER2 : (x < -1.0f) ? -MATH_FLOAT_PIOVER2 : asinf(x); }
 inline double Asin(double x) { return (x > 1.0) ? MATH_DOUBLE_PIOVER2 : (x < -1.0) ? -MATH_DOUBLE_PIOVER2 : asin(x); }
 
-#if defined(_MSC_VER)
+#ifdef __GNUC__
+#   include <cmath>
+#else
+#   if defined(_MSC_VER)
     inline int isnan(double x) { return ::_isnan(x); }
-#elif !defined(isnan) // Some libraries #define isnan.
+#   elif !defined(isnan) // Some libraries #define isnan.
     inline int isnan(double x) { return ::isnan(x); }
+#   endif
 #endif
 
 template<class T>
