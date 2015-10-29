@@ -6,16 +6,16 @@ Content     :   Template implementation for doubly-connected linked List
 Created     :   September 19, 2012
 Notes       : 
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,27 +38,75 @@ namespace OVR {
 // Base class for the elements of the intrusive linked list.
 // To store elements in the List do:
 //
-// struct MyData : ListNode<MyData>
+// class MyData : ListNode<MyData>
 // {
 //     . . .
 // };
 
 template<class T>
-struct ListNode
+class ListNode
 {
-    union {
-        T*    pPrev;
-        void* pVoidPrev;
-    };
-    union {
-        T*    pNext;
-        void* pVoidNext;
-    };
+private:
+    ListNode<T>* pPrev;
+    ListNode<T>* pNext;
+
+    template<class X, class B> friend class List;
+
+#ifdef OVR_BUILD_DEBUG
+    bool marker; // Is this a marker node (rather than an actual data node)?
+#endif
+
+public:
+#ifdef OVR_BUILD_DEBUG
+    T* GetPrev() const
+    {
+        if (pPrev && !pPrev->marker)
+        {
+            return (T*)(pPrev);
+        }
+        else
+        {
+            OVR_FAIL_M("Unstable call to ListNode<>::GetPrev() without first checking List<>IsFirst()");
+            return nullptr;
+        }
+    }
+    T* GetNext() const
+    {
+        if (pNext && !pNext->marker)
+        {
+            return (T*)(pNext);
+        }
+        else
+        {
+            OVR_FAIL_M("Unstable call to ListNode<>::GetNext() without first checking List<>IsLast()");
+            return nullptr;
+        }
+    }
+#else
+    T* GetPrev() const { return (T*)(pPrev); }
+    T* GetNext() const { return (T*)(pNext); }
+#endif
+
+    ListNode()
+    {
+#ifdef OVR_BUILD_DEBUG
+        marker = false; // Most nodes are data nodes, so that is the default.
+#endif
+        pPrev = nullptr;
+        pNext = nullptr;
+    }
+
+    bool    IsInList()
+    {
+        return (pNext != nullptr);
+    }
 
     void    RemoveNode()
     {
         pPrev->pNext = pNext;
         pNext->pPrev = pPrev;
+        pPrev = nullptr;
+        pNext = nullptr;
     }
 
     // Removes us from the list and inserts pnew there instead.
@@ -68,8 +116,10 @@ struct ListNode
         pNext->pPrev = pnew;
         pnew->pPrev = pPrev;
         pnew->pNext = pNext;
+        pPrev = nullptr;
+        pNext = nullptr;
     }
-       
+
     // Inserts the argument linked list node after us in the list.
     void    InsertNodeAfter(T* p)
     {
@@ -91,18 +141,19 @@ struct ListNode
     {
         pdest->pNext = pNext;
         pdest->pPrev = pPrev;
-        pPrev->pNext = (T*)pdest;
-        pNext->pPrev = (T*)pdest;
+        pPrev->pNext = pdest;
+        pNext->pPrev = pdest;
+        pPrev = nullptr;
+        pNext = nullptr;
     }
 };
-
 
 //------------------------------------------------------------------------
 // ***** List
 //
-// Doubly linked intrusive list. 
+// Doubly linked intrusive list.
 // The data type must be derived from ListNode.
-// 
+//
 // Adding:   PushFront(), PushBack().
 // Removing: Remove() - the element must be in the list!
 // Moving:   BringToFront(), SendToBack() - the element must be in the list!
@@ -138,36 +189,49 @@ public:
 
     List()
     {
-        Root.pNext = Root.pPrev = (ValueType*)&Root;
+        Root.pNext = Root.pPrev = &Root;
+#ifdef OVR_BUILD_DEBUG
+        Root.marker = true; // This is a marker node.
+#endif
     }
 
     void Clear()
     {
-        Root.pNext = Root.pPrev = (ValueType*)&Root;
+        Root.pNext = Root.pPrev = &Root;
     }
 
-    const ValueType* GetFirst() const { return (const ValueType*)Root.pNext; }
-    const ValueType* GetLast () const { return (const ValueType*)Root.pPrev; }
-          ValueType* GetFirst()       { return (ValueType*)Root.pNext; }
-          ValueType* GetLast ()       { return (ValueType*)Root.pPrev; }
+    size_t GetSize() const
+    {
+        size_t n = 0;
+
+        for(const ListNode<B>* pNode = Root.pNext; pNode != &Root; pNode = pNode->pNext)
+            ++n;
+
+        return n;
+    }
+
+    const ValueType* GetFirst() const { return IsEmpty() ? nullptr : (const ValueType*)Root.pNext; }
+    const ValueType* GetLast () const { return IsEmpty() ? nullptr : (const ValueType*)Root.pPrev; }
+          ValueType* GetFirst()       { return IsEmpty() ? nullptr : (ValueType*)Root.pNext; }
+          ValueType* GetLast ()       { return IsEmpty() ? nullptr : (ValueType*)Root.pPrev; }
 
     // Determine if list is empty (i.e.) points to itself.
     // Go through void* access to avoid issues with strict-aliasing optimizing out the
     // access after RemoveNode(), etc.
-    bool IsEmpty()                   const { return Root.pVoidNext == (const T*)(const B*)&Root; }
+    bool IsEmpty()                   const { return Root.pNext == &Root; }
     bool IsFirst(const ValueType* p) const { return p == Root.pNext; }
     bool IsLast (const ValueType* p) const { return p == Root.pPrev; }
-    bool IsNull (const ValueType* p) const { return p == (const T*)(const B*)&Root; }
+    bool IsNull (const ListNode<B>* p) const { return p == nullptr || p == &Root; }
 
-    inline static const ValueType* GetPrev(const ValueType* p) { return (const ValueType*)p->pPrev; }
-    inline static const ValueType* GetNext(const ValueType* p) { return (const ValueType*)p->pNext; }
-    inline static       ValueType* GetPrev(      ValueType* p) { return (ValueType*)p->pPrev; }
-    inline static       ValueType* GetNext(      ValueType* p) { return (ValueType*)p->pNext; }
+    inline const ValueType* GetPrev(const ValueType* p) const { return IsNull(p->pPrev) ? nullptr : (const ValueType*)p->pPrev; }
+    inline const ValueType* GetNext(const ValueType* p) const { return IsNull(p->pNext) ? nullptr : (const ValueType*)p->pNext; }
+    inline       ValueType* GetPrev(      ValueType* p) { return IsNull(p->pPrev) ? nullptr : (ValueType*)p->pPrev; }
+    inline       ValueType* GetNext(      ValueType* p) { return IsNull(p->pNext) ? nullptr : (ValueType*)p->pNext; }
 
     void PushFront(ValueType* p)
     {
         p->pNext          =  Root.pNext;
-        p->pPrev          = (ValueType*)&Root;
+        p->pPrev          =  &Root;
         Root.pNext->pPrev =  p;
         Root.pNext        =  p;
     }
@@ -175,7 +239,7 @@ public:
     void PushBack(ValueType* p)
     {
         p->pPrev          =  Root.pPrev;
-        p->pNext          = (ValueType*)&Root;
+        p->pNext          =  &Root;
         Root.pPrev->pNext =  p;
         Root.pPrev        =  p;
     }
@@ -184,6 +248,8 @@ public:
     {
         p->pPrev->pNext = p->pNext;
         p->pNext->pPrev = p->pPrev;
+        p->pPrev        =  nullptr;
+        p->pNext        =  nullptr;
     }
 
     void BringToFront(ValueType* p)
@@ -207,8 +273,8 @@ public:
             ValueType* pfirst = src.GetFirst();
             ValueType* plast  = src.GetLast();
             src.Clear();
-            plast->pNext   = Root.pNext;
-            pfirst->pPrev  = (ValueType*)&Root;
+            plast->pNext      = Root.pNext;
+            pfirst->pPrev     = &Root;
             Root.pNext->pPrev = plast;
             Root.pNext        = pfirst;
         }
@@ -221,14 +287,14 @@ public:
             ValueType* pfirst = src.GetFirst();
             ValueType* plast  = src.GetLast();
             src.Clear();
-            plast->pNext   = (ValueType*)&Root;
-            pfirst->pPrev  = Root.pPrev;
+            plast->pNext      = &Root;
+            pfirst->pPrev     = Root.pPrev;
             Root.pPrev->pNext = pfirst;
             Root.pPrev        = plast;
         }
     }
 
-    // Removes all source list items after (and including) the 'pfirst' node from the 
+    // Removes all source list items after (and including) the 'pfirst' node from the
     // source list and adds them to out list.
     void    PushFollowingListItemsToFront(List<T>& src, ValueType *pfirst)
     {
@@ -237,17 +303,17 @@ public:
             ValueType *plast = src.Root.pPrev;
 
             // Remove list remainder from source.
-            pfirst->pPrev->pNext = (ValueType*)&src.Root;
-            src.Root.pPrev      = pfirst->pPrev;
+            pfirst->pPrev->pNext = &src.Root;
+            src.Root.pPrev       = pfirst->pPrev;
             // Add the rest of the items to list.
             plast->pNext      = Root.pNext;
-            pfirst->pPrev     = (ValueType*)&Root;
+            pfirst->pPrev     = &Root;
             Root.pNext->pPrev = plast;
             Root.pNext        = pfirst;
         }
     }
 
-    // Removes all source list items up to but NOT including the 'pend' node from the 
+    // Removes all source list items up to but NOT including the 'pend' node from the
     // source list and adds them to out list.
     void    PushPrecedingListItemsToFront(List<T>& src, ValueType *ptail)
     {
@@ -257,12 +323,12 @@ public:
             ValueType *plast  = ptail->pPrev;
 
             // Remove list remainder from source.
-            ptail->pPrev      = (ValueType*)&src.Root;
-            src.Root.pNext    = ptail;            
+            ptail->pPrev      = &src.Root;
+            src.Root.pNext    = ptail;
 
             // Add the rest of the items to list.
             plast->pNext      = Root.pNext;
-            pfirst->pPrev     = (ValueType*)&Root;
+            pfirst->pPrev     = &Root;
             Root.pNext->pPrev = plast;
             Root.pNext        = pfirst;
         }
@@ -282,7 +348,7 @@ public:
             pend->pPrev          = pfirst->pPrev;
             // Add the rest of the items to list.
             plast->pNext      = Root.pNext;
-            pfirst->pPrev     = (ValueType*)&Root;
+            pfirst->pPrev     = &Root;
             Root.pNext->pPrev = plast;
             Root.pNext        = pfirst;
         }
@@ -298,9 +364,9 @@ public:
             pdest->Root.pNext = Root.pNext;
             pdest->Root.pPrev = Root.pPrev;
 
-            Root.pNext->pPrev = (ValueType*)&pdest->Root;
-            Root.pPrev->pNext = (ValueType*)&pdest->Root;
-        }        
+            Root.pNext->pPrev = &pdest->Root;
+            Root.pPrev->pNext = &pdest->Root;
+        }
     }
 
 

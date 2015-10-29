@@ -6,16 +6,16 @@ Content     :   String UTF8 string implementation with copy-on-write semantics
 Created     :   September 19, 2012
 Notes       : 
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,8 +38,7 @@ namespace OVR {
 
 #define String_LengthIsSize (size_t(1) << String::Flag_LengthIsSizeShift)
 
-String::DataDesc String::NullData = {String_LengthIsSize, 1, {0} };
-
+String::DataDesc String::NullData = {String_LengthIsSize, AtomicInt<int32_t>(1), {0} };
 
 String::String()
 {
@@ -284,8 +283,10 @@ void    String::operator = (const char* pstr)
 
 void    String::operator = (const wchar_t* pwstr)
 {
+    pwstr = pwstr ? pwstr : L"";
+
     DataDesc*   poldData = GetData();
-    size_t      size = pwstr ? (size_t)UTF8Util::GetEncodeStringSize(pwstr) : 0;
+    size_t      size = (size_t)UTF8Util::GetEncodeStringSize(pwstr);
 
     DataDesc*   pnewData = AllocData(size, 0);
     UTF8Util::EncodeString(pnewData->Data, pwstr);
@@ -673,13 +674,14 @@ void     StringBuffer::AppendChar(uint32_t ch)
     
     size_t size = origSize + srcSize;
     Resize(size);
+    OVR_ASSERT(pData != NULL);
     memcpy(pData + origSize, buff, srcSize);
 }
 
 // Append a string
 void     StringBuffer::AppendString(const wchar_t* pstr, intptr_t len)
 {
-    if (!pstr)
+    if (!pstr || !len)
         return;
 
     intptr_t srcSize  = UTF8Util::GetEncodeStringSize(pstr, len);
@@ -687,6 +689,7 @@ void     StringBuffer::AppendString(const wchar_t* pstr, intptr_t len)
     size_t   size     = srcSize + origSize;
 
     Resize(size);
+    OVR_ASSERT(pData != NULL);
     UTF8Util::EncodeString(pData + origSize,  pstr, len);
 }
 
@@ -701,30 +704,36 @@ void      StringBuffer::AppendString(const char* putf8str, intptr_t utf8StrSz)
     size_t  size     = utf8StrSz + origSize;
 
     Resize(size);
+    OVR_ASSERT(pData != NULL);
     memcpy(pData + origSize, putf8str, utf8StrSz);
 }
 
-
+// If pstr is NULL then the StringBuffer is cleared.
 void      StringBuffer::operator = (const char* pstr)
 {
     pstr = pstr ? pstr : "";
     size_t size = OVR_strlen(pstr);
     Resize(size);
+    OVR_ASSERT((pData != NULL) || (size == 0));
     memcpy(pData, pstr, size);
 }
 
+// If pstr is NULL then the StringBuffer is cleared.
 void      StringBuffer::operator = (const wchar_t* pstr)
 {
     pstr = pstr ? pstr : L"";
     size_t size = (size_t)UTF8Util::GetEncodeStringSize(pstr);
     Resize(size);
+    OVR_ASSERT((pData != NULL) || (size == 0));
     UTF8Util::EncodeString(pData, pstr);
 }
 
 void      StringBuffer::operator = (const String& src)
 {
-    Resize(src.GetSize());
-    memcpy(pData, src.ToCStr(), src.GetSize());
+    const size_t size = src.GetSize();
+    Resize(size);
+    OVR_ASSERT((pData != NULL) || (size == 0));
+    memcpy(pData, src.ToCStr(), size);
 }
 
 void      StringBuffer::operator = (const StringBuffer& src)
@@ -745,6 +754,7 @@ void      StringBuffer::Insert(const char* substr, size_t posAt, intptr_t len)
     OVR_ASSERT(byteIndex <= oldSize);
     Reserve(oldSize + insertSize);
 
+    OVR_ASSERT(pData != NULL); // pData is unilaterally written to below.
     memmove(pData + byteIndex + insertSize, pData + byteIndex, oldSize - byteIndex + 1);
     memcpy (pData + byteIndex, substr, insertSize);
     LengthIsSize = false;
@@ -764,5 +774,82 @@ size_t    StringBuffer::InsertCharAt(uint32_t c, size_t posAt)
     Insert(buf, posAt, len);
     return (size_t)len;
 }
+
+
+
+
+
+
+std::wstring UTF8StringToUCSString(const char* pUTF8, size_t length)
+{
+    if(length == (size_t)-1)
+        length = strlen(pUTF8);
+
+    std::wstring returnValue(length, wchar_t(0)); // We'll possibly trim this value below.
+
+    // Note that DecodeString doesn't handle UTF8 encoding errors.
+    size_t decodedLength = OVR::UTF8Util::DecodeString(&returnValue[0], pUTF8, (intptr_t)length);
+    OVR_ASSERT(decodedLength <= length);
+
+    returnValue.resize(decodedLength);
+
+    return returnValue;
+}
+
+std::wstring UTF8StringToUCSString(const std::string& sUTF8)
+{
+    return UTF8StringToUCSString(sUTF8.data(), sUTF8.size());
+}
+
+
+std::wstring OVRStringToUCSString(const OVR::String& sOVRUTF8)
+{
+    return UTF8StringToUCSString(sOVRUTF8.ToCStr(), sOVRUTF8.GetSize());
+}
+
+
+
+
+std::string UCSStringToUTF8String(const wchar_t* pUCS, size_t length)
+{
+    if(length == (size_t)-1)
+        length = wcslen(pUCS);
+
+    std::string sUTF8;
+    intptr_t    requiredUTF8Length = OVR::UTF8Util::GetEncodeStringSize(pUCS, length); // GetEncodeStringSize returns required strlen. We assume it returns an error if < 0.
+
+    if (requiredUTF8Length >= 0)
+    {
+        sUTF8.resize(requiredUTF8Length);
+        OVR::UTF8Util::EncodeString(&sUTF8[0], pUCS, length);
+    }
+
+    return sUTF8;
+}
+
+std::string UCSStringToUTF8String(const std::wstring& sUCS)
+{
+    return UCSStringToUTF8String(sUCS.data(), sUCS.size());
+}
+
+
+
+OVR::String UCSStringToOVRString(const wchar_t* pUCS, size_t length)
+{
+    if(length == (size_t)-1)
+        length = wcslen(pUCS);
+
+    // We use a std::string intermediate because OVR::String doesn't support resize or assignment without preallocated data.
+    const std::string sUTF8 = UCSStringToUTF8String(pUCS, length); 
+    const OVR::String sOVRUTF8(sUTF8.data(), sUTF8.size());
+    return sOVRUTF8;
+}
+
+OVR::String UCSStringToOVRString(const std::wstring& sUCS)
+{
+    return UCSStringToOVRString(sUCS.data(), sUCS.length());
+}
+
+
 
 } // OVR

@@ -7,16 +7,16 @@ Content     :   String UTF8 string implementation with copy-on-write semantics
 Created     :   September 19, 2012
 Notes       : 
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,6 +35,8 @@ limitations under the License.
 #include "OVR_Atomic.h"
 #include "OVR_Std.h"
 #include "OVR_Alg.h"
+#include <string>
+
 
 namespace OVR {
 
@@ -69,12 +71,12 @@ protected:
         // Number of bytes. Will be the same as the number of chars if the characters
         // are ascii, may not be equal to number of chars in case string data is UTF8.
         size_t  Size;       
-        volatile int32_t RefCount;
+        AtomicInt<int32_t> RefCount;
         char    Data[1];
 
         void    AddRef()
         {
-            AtomicOps<int32_t>::ExchangeAdd_NoSync(&RefCount, 1);
+            RefCount.ExchangeAdd_NoSync(1);
         }
         // Decrement ref count. This needs to be thread-safe, since
         // a different thread could have also decremented the ref count.
@@ -88,7 +90,7 @@ protected:
         // checking against 0 needs to made an atomic operation.
         void    Release()
         {
-            if ((AtomicOps<int32_t>::ExchangeAdd_NoSync(&RefCount, -1) - 1) == 0)
+            if ((RefCount.ExchangeAdd_NoSync(-1) - 1) == 0)
                 OVR_FREE(this);
         }
 
@@ -340,6 +342,10 @@ public:
     {
         return CompareNoCase(GetData()->Data, str.ToCStr());
     }
+    int CompareNoCaseStartsWith(const String& str) const
+    {
+        return CompareNoCase(GetData()->Data, str.ToCStr(), str.GetLength());
+    }
 
     // Accesses raw bytes
     const char&     operator [] (int index) const
@@ -461,6 +467,7 @@ public:
     // Append a string
     void        AppendString(const wchar_t* pstr, intptr_t len = -1);
     void        AppendString(const char* putf8str, intptr_t utf8StrSz = -1);
+    void        AppendFormatV(const char* format, va_list argList);
     void        AppendFormat(const char* format, ...);
 
     // Assigned a string with dynamic data (copied through initializer).
@@ -652,6 +659,30 @@ protected:
     const char* pStr;
     size_t      Size;
 };
+
+
+
+// Convert a UTF8 OVR::String object to a wchar_t UCS (Unicode) std::basic_string object.
+// The C++11 Standard Library has similar functionality, but it's not supported by earlier 
+// versions of Visual Studio. To consider: Add support for this when available.
+// length is the strlen of pUTF8. If not specified then it is calculated automatically.
+// Returns an empty string in the case that the UTF8 is malformed.
+std::wstring UTF8StringToUCSString(const char* pUTF8, size_t length = (size_t)-1);
+std::wstring UTF8StringToUCSString(const std::string& sUTF8);
+std::wstring OVRStringToUCSString(const OVR::String& sOVRUTF8);
+
+
+// Convert a wchar_t UCS (Unicode) std::basic_string object to a UTF8 std::basic_string object.
+// The C++11 Standard Library has similar functionality, but it's not supported by earlier 
+// versions of Visual Studio. To consider: Add support for this when available.
+// length is the strlen of pUCS. If not specified then it is calculated automatically.
+// Returns an empty string in the case that the UTF8 is malformed.
+std::string UCSStringToUTF8String(const wchar_t* pUCS, size_t length = (size_t)-1);
+std::string UCSStringToUTF8String(const std::wstring& sUCS);
+OVR::String UCSStringToOVRString(const wchar_t* pUCS, size_t length = (size_t)-1);
+OVR::String UCSStringToOVRString(const std::wstring& sUCS);
+
+
 
 } // OVR
 

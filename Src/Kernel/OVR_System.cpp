@@ -6,16 +6,16 @@ Content     :   General kernel initialization/cleanup, including that
 Created     :   September 19, 2012
 Notes       : 
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,113 +28,177 @@ limitations under the License.
 #include "OVR_System.h"
 #include "OVR_Threads.h"
 #include "OVR_Timer.h"
-#include "../Displays/OVR_Display.h"
-#ifdef OVR_OS_WIN32
-#include "../Displays/OVR_Win32_ShimFunctions.h"
+#include "OVR_DebugHelp.h"
+#include <new>
+
+#if defined(_MSC_VER)
+    #include <new.h>
+#else
+    #include <new>
+#endif
+
+#ifdef OVR_OS_MS
+    #pragma warning(push, 0)
+    #include "OVR_Win32_IncludeWindows.h" // GetModuleHandleEx
+    #pragma warning(pop)
 #endif
 
 namespace OVR {
 
-extern bool anyRiftsInExtendedMode();
 
-// Stack of destroy listeners (push/pop semantics)
-static SystemSingletonInternal *SystemShutdownListenerStack = 0;
-static Lock stackLock;
 
-void SystemSingletonInternal::PushDestroyCallbacks()
+//-----------------------------------------------------------------------------
+// Initialization/Shutdown state
+// If true, then Destroy() was called and is in the process of executing
+// Added to fix race condition if thread is started after the call to System::Destroy()
+static bool ShuttingDown = false;
+
+//-----------------------------------------------------------------------------
+// Initialization/Shutdown Callbacks
+
+static SystemSingletonInternal *SystemShutdownListenerList = nullptr;  // Points to the most recent SystemSingletonInternal added to the list.
+
+static Lock& GetSSILock()
+{                           // Put listLock in a function so that it can be constructed on-demand.
+    static Lock listLock;   // Will construct on the first usage. However, the guarding of this construction is not thread-safe 
+    return listLock;        // under all compilers. However, since we are initially calling this on startup before other threads
+}                           // could possibly exist, the first usage of this will be before other threads exist.
+
+void SystemSingletonInternal::RegisterDestroyCallback()
 {
-    Lock::Locker locker(&stackLock);
-
-    // Push listener onto the stack
-    NextSingleton = SystemShutdownListenerStack;
-    SystemShutdownListenerStack = this;
-}
-
-void System::DirectDisplayInitialize()
-{
-#ifdef OVR_OS_WIN32
-	// Set up display code for Windows
-	Win32::DisplayShim::GetInstance();
-
-	// This code will look for the first display. If it's a display
-	// that's extending the destkop, the code will assume we're in
-	// compatibility mode. Compatibility mode prevents shim loading
-	// and renders only to extended Rifts.
-	// If we find a display and it's application exclusive,
-	// we load the shim so we can render to it.
-	// If no display is available, we revert to whatever the
-	// driver tells us we're in
-
-	bool anyExtendedRifts = anyRiftsInExtendedMode() || Display::InCompatibilityMode( false );
-	
-	Win32::DisplayShim::GetInstance().Initialize(anyExtendedRifts);
-#endif
-}
-
-// Initializes System core, installing allocator.
-void System::Init(Log* log, Allocator *palloc)
-{    
-    if (!Allocator::GetInstance())
+    GetSSILock().DoLock();
+    if (ShuttingDown)
     {
-        Log::SetGlobalLog(log);
-        Timer::initializeTimerSystem();
-        Allocator::setInstance(palloc);
-		Display::Initialize();
-		DirectDisplayInitialize();
+        GetSSILock().Unlock();
+
+        OnThreadDestroy();
     }
     else
     {
-        OVR_DEBUG_LOG(("System::Init failed - duplicate call."));
+        GetSSILock().Unlock();
+
+        // Insert the listener at the front of the list (top of the stack). This is an analogue of a C++ forward_list::push_front or stack::push.
+        NextShutdownSingleton = SystemShutdownListenerList;
+        SystemShutdownListenerList = this;
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+// System
+
+static int System_Init_Count = 0;
+
+#if defined(_MSC_VER)
+    // This allows us to throw OVR::bad_alloc instead of std::bad_alloc, which provides less information.
+    int OVRNewFailureHandler(size_t /*size*/)
+    {
+        throw OVR::bad_alloc();
+
+        // Disabled because otherwise a compiler warning is generated regarding unreachable code.
+        //return 0; // A return value of 0 tells the Standard Library to not retry the allocation.
+    }
+#else
+    // This allows us to throw OVR::bad_alloc instead of std::bad_alloc, which provides less information.
+    void OVRNewFailureHandler()
+    {
+        throw OVR::bad_alloc();
+    }
+#endif
+
+
+// Initializes System core, installing allocator.
+void System::Init(Log* log)
+{
+    #if defined(_MSC_VER)
+        // Make it so that failure of the C malloc family of functions results in the same behavior as C++ operator new failure.
+        // This allows us to throw exceptions for malloc usage the same as for operator new bad_alloc.
+        _set_new_mode(1);
+
+        // Tells the standard library to direct new (and malloc) failures to us. Normally we wouldn't need to do this, as the 
+        // C++ Standard Library already throws std::bad_alloc on operator new failure. The problem is that the Standard Library doesn't
+        // throw std::bad_alloc upon malloc failure, and we can only intercept malloc failure via this means. _set_new_handler specifies
+        // a global handler for the current running Standard Library. If the Standard Library is being dynamically linked instead
+        // of statically linked, then this is a problem because a call to _set_new_handler would override anything the application
+        // has already set.
+        _set_new_handler(OVRNewFailureHandler);
+    #else
+        // This allows us to throw OVR::bad_alloc instead of std::bad_alloc, which provides less information.
+        // Question: Does this set the handler for all threads or just the current thread? The C++ Standard doesn't 
+        // explicitly state this, though it may be implied from other parts of the Standard.
+        std::set_new_handler(OVRNewFailureHandler);
+    #endif
+
+    if (++System_Init_Count == 1)
+    {
+        Log::SetGlobalLog(log);
+        Timer::initializeTimerSystem();
+    }
+    else
+    {
+        OVR_DEBUG_LOG(("[System] Init recursively called; depth = %d", System_Init_Count));
     }
 }
 
 void System::Destroy()
-{    
-    if (Allocator::GetInstance())
+{
+    GetSSILock().DoLock();
+    ShuttingDown = true;
+    GetSSILock().Unlock();
+
+    if (--System_Init_Count == 0)
     {
-#ifdef OVR_OS_WIN32
-		Win32::DisplayShim::GetInstance().Shutdown();
-#endif
+        // Invoke all of the post-finish callbacks (normal case)
+        for (SystemSingletonInternal *listener = SystemShutdownListenerList; listener; listener = listener->NextShutdownSingleton)
+        {
+            listener->OnThreadDestroy();
+        }
 
-		// Invoke all of the post-finish callbacks (normal case)
-        for (SystemSingletonInternal *listener = SystemShutdownListenerStack; listener; listener = listener->NextSingleton)
-		{
-			listener->OnThreadDestroy();
-		}
+        #ifdef OVR_ENABLE_THREADS
+            // Wait for all threads to finish; this must be done so that memory
+            // allocator and all destructors finalize correctly.
+            Thread::FinishAllThreads();
+        #endif
 
-#ifdef OVR_ENABLE_THREADS
-		// Wait for all threads to finish; this must be done so that memory
-		// allocator and all destructors finalize correctly.
-		Thread::FinishAllThreads();
-#endif
+        // Invoke all of the post-finish callbacks (normal case)
+        for (SystemSingletonInternal* next, *listener = SystemShutdownListenerList; listener; listener = next)
+        {
+            next = listener->NextShutdownSingleton;
 
-		// Invoke all of the post-finish callbacks (normal case)
-        for (SystemSingletonInternal *next, *listener = SystemShutdownListenerStack; listener; listener = next)
-		{
-            next = listener->NextSingleton;
+            listener->OnSystemDestroy();
+        }
 
-			listener->OnSystemDestroy();
-		}
-
-        SystemShutdownListenerStack = 0;
-
-		// Shutdown heap and destroy SysAlloc singleton, if any.
-        Allocator::GetInstance()->onSystemShutdown();
-        Allocator::setInstance(0);
+        SystemShutdownListenerList = nullptr;
 
         Timer::shutdownTimerSystem();
+
         Log::SetGlobalLog(Log::GetDefaultLog());
+
+        if (Allocator::IsTrackingLeaks())
+        {
+            int ovrLeakCount = Allocator::DumpMemory();
+
+            OVR_ASSERT(ovrLeakCount == 0);
+            if (ovrLeakCount == 0)
+            {
+                OVR_DEBUG_LOG(("[System] No OVR object leaks detected."));
+            }
+        }
     }
     else
     {
-        OVR_DEBUG_LOG(("System::Destroy failed - System not initialized."));
+        OVR_DEBUG_LOG(("[System] Destroy recursively called; depth = %d", System_Init_Count));
     }
+
+    GetSSILock().DoLock();
+    ShuttingDown = false;
+    GetSSILock().Unlock();
 }
 
 // Returns 'true' if system was properly initialized.
 bool System::IsInitialized()
 {
-    return Allocator::GetInstance() != 0;
+    return System_Init_Count > 0;
 }
 
 

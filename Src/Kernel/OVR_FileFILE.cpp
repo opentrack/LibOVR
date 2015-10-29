@@ -6,16 +6,16 @@ Content     :   File wrapper class implementation (Win32)
 Created     :   April 5, 1999
 Authors     :   Michael Antonov
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -60,9 +60,15 @@ static int SFerror ()
         return FileConstants::Error_IOError;
 };
 
+
+#if defined(OVR_CC_MSVC)
+#include "share.h"
+#endif
+
+
 #if defined(OVR_OS_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#include "windows.h"
+#include "OVR_Win32_IncludeWindows.h"
+
 // A simple helper class to disable/enable system error mode, if necessary
 // Disabling happens conditionally only if a drive name is involved
 class SysErrorModeDisabler
@@ -74,16 +80,20 @@ public:
     {
         if (pfileName && (pfileName[0]!=0) && pfileName[1]==':')
         {
-            Disabled = 1;
+            Disabled = TRUE;
             OldMode = ::SetErrorMode(SEM_FAILCRITICALERRORS);
         }
         else
+        {
             Disabled = 0;
+            OldMode = 0;
+        }
     }
 
     ~SysErrorModeDisabler()
     {
-        if (Disabled) ::SetErrorMode(OldMode);
+        if (Disabled) 
+            ::SetErrorMode(OldMode);
     }
 };
 #else
@@ -129,18 +139,24 @@ protected:
 
 public:
 
-    FILEFile()
+    FILEFile() :
+        FileName(),
+        Opened(false),
+        fs(NULL),
+        OpenFlags(0),
+        ErrorCode(0),
+        LastOp(0)
+    #ifdef OVR_FILE_VERIFY_SEEK_ERRORS
+       ,pFileTestBuffer(NULL)
+       ,FileTestLength(0)
+       ,TestPos(0)
+    #endif
     {
-        Opened = 0; FileName = "";
-
-#ifdef OVR_FILE_VERIFY_SEEK_ERRORS
-        pFileTestBuffer =0;
-        FileTestLength  =0;
-        TestPos         =0;
-#endif
     }
+
     // Initialize file by opening it
     FILEFile(const String& fileName, int flags, int Mode);
+
     // The 'pfileName' should be encoded as UTF-8 to support international file names.
     FILEFile(const char* pfileName, int flags, int Mode);
 
@@ -219,7 +235,7 @@ void FILEFile::init()
     else if (OpenFlags & Open_Write)
         omode = "r+b";
 
-#if defined(OVR_OS_WIN32)
+#if defined(OVR_OS_MS)
     SysErrorModeDisabler disabler(FileName.ToCStr());
 #endif
 
@@ -228,8 +244,8 @@ void FILEFile::init()
     wchar_t *pwFileName = (wchar_t*)OVR_ALLOC((UTF8Util::GetLength(FileName.ToCStr())+1) * sizeof(wchar_t));
     UTF8Util::DecodeString(pwFileName, FileName.ToCStr());
     OVR_ASSERT(strlen(omode) < sizeof(womode)/sizeof(womode[0]));
-    UTF8Util::DecodeString(womode, omode);
-    _wfopen_s(&fs, pwFileName, womode);
+    UTF8Util::DecodeString(womode, omode); 
+    fs = _wfsopen(pwFileName, womode, _SH_DENYWR); // Allow others to read the file when we are writing it.
     OVR_FREE(pwFileName);
 #else
     fs = fopen(FileName.ToCStr(), omode);
@@ -574,7 +590,7 @@ Ptr<File> FileFILEOpen(const String& path, int flags, int mode)
 // Helper function: obtain file information time.
 bool    SysFile::GetFileStat(FileStat* pfileStat, const String& path)
 {
-#if defined(OVR_OS_WIN32)
+#if defined(OVR_OS_MS)
     // 64-bit implementation on Windows.
     struct __stat64 fileStat;
     // Stat returns 0 for success.

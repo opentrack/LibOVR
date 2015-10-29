@@ -6,16 +6,16 @@ Content     :   Reference counting implementation headers
 Created     :   September 19, 2012
 Notes       : 
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -62,7 +62,7 @@ class   RefCountNTSImpl;
 class RefCountImplCore
 {
 protected:
-   volatile int RefCount;
+   AtomicInt<int> RefCount;
 
 public:
     // RefCountImpl constructor always initializes RefCount to 1 by default.
@@ -109,7 +109,10 @@ public:
     virtual ~RefCountNTSImplCore();
 
     // Debug method only.
-    int             GetRefCount() const { return RefCount;  }
+    int GetRefCount() const 
+    {
+        return RefCount;
+    }
 
     // This logic is used to detect invalid 'delete' calls of reference counted
     // objects. Direct delete calls are not allowed on them unless they come in
@@ -160,7 +163,11 @@ public:
 class RefCountNTSImpl : public RefCountNTSImplCore
 {
 public:
-    OVR_FORCE_INLINE void    AddRef() const { RefCount++; }
+    OVR_FORCE_INLINE void    AddRef() const
+    {
+        RefCount++;
+    }
+
     void    Release() const;   
 };
 
@@ -281,210 +288,179 @@ public:
     OVR_FORCE_INLINE RefCountBaseNTS() : RefCountBaseStatImpl<RefCountNTSImpl>() { }    
 };
 
-//-----------------------------------------------------------------------------------
-// ***** Pickable template pointer
-enum PickType { PickValue };
 
-template <typename T>
-class Pickable
-{
-public:
-    Pickable() : pV(NULL) {}
-    explicit Pickable(T* p) : pV(p) {}
-    Pickable(T* p, PickType) : pV(p) 
-    {
-        OVR_ASSERT(pV);
-        if (pV)
-            pV->AddRef();
-    }
-    template <typename OT>
-    Pickable(const Pickable<OT>& other) : pV(other.GetPtr()) {}
 
-public:
-    Pickable& operator =(const Pickable& other)
-    {
-        OVR_ASSERT(pV == NULL);
-        pV = other.pV;
-        // Extra check.
-        //other.pV = NULL;
-        return *this;
-    }
-
-public:
-    T* GetPtr() const { return pV; }
-    T* operator->() const
-    {
-        return pV;
-    }
-    T& operator*() const
-    {
-        OVR_ASSERT(pV);
-        return *pV;
-    }
-
-private:
-    T* pV;
-};
-
-template <typename T>
-OVR_FORCE_INLINE
-Pickable<T> MakePickable(T* p)
-{
-    return Pickable<T>(p);
-}
 
 //-----------------------------------------------------------------------------------
 // ***** Ref-Counted template pointer
-
+//
 // Automatically AddRefs and Releases interfaces
-
-void* ReturnArg0(void* p);
+//
+// Note: Some of the member functions take C& as opposed to C* arguments:
+//    Ptr(C&)
+//    const Ptr<C>& operator= (C&)
+//    Ptr<C>& SetPtr(C&)
+// These functions do not AddRef the assigned C& value, unlike the C* assignment 
+// functions. Thus the purpose of these functions is for the Ptr instance to 
+// assume ownership of a C reference count. Example usage:
+//     Ptr<Widget> w = *new Widget;   // Calls the Ptr(C&) constructor. Note that the Widget constructor sets initial refcount to 1.
+//
 
 template<class C>
 class Ptr
 {
-#ifdef OVR_CC_ARM
-    static C* ReturnArg(void* p) { return (C*)ReturnArg0(p); }
-#endif
-
 protected:
     C   *pObject;
 
 public:
 
     // Constructors
-    OVR_FORCE_INLINE Ptr() : pObject(0)
+    OVR_FORCE_INLINE Ptr() 
+        : pObject(0)
     { }
-#ifdef OVR_CC_ARM
-    OVR_FORCE_INLINE Ptr(C &robj) : pObject(ReturnArg(&robj))
-#else
-    OVR_FORCE_INLINE Ptr(C &robj) : pObject(&robj)
-#endif
+
+    // This constructor adopts the object's existing reference count rather than increment it.
+    OVR_FORCE_INLINE Ptr(C &robj) 
+        : pObject(&robj)
     { }
-    OVR_FORCE_INLINE Ptr(Pickable<C> v) : pObject(v.GetPtr())
-    {
-        // No AddRef() on purpose.
-    }
-    OVR_FORCE_INLINE Ptr(Ptr<C>& other, PickType) : pObject(other.pObject)
-    {
-        other.pObject = NULL;
-        // No AddRef() on purpose.
-    }
+
     OVR_FORCE_INLINE Ptr(C *pobj)
     {
-        if (pobj) pobj->AddRef();   
+        if (pobj) 
+            pobj->AddRef();   
         pObject = pobj;
     }
+
     OVR_FORCE_INLINE Ptr(const Ptr<C> &src)
     {
-        if (src.pObject) src.pObject->AddRef();     
+        if (src.pObject) 
+            src.pObject->AddRef();     
         pObject = src.pObject;
     }
 
     template<class R>
     OVR_FORCE_INLINE Ptr(Ptr<R> &src)
     {
-        if (src) src->AddRef();
+        if (src) 
+            src->AddRef();
         pObject = src;
-    }
-    template<class R>
-    OVR_FORCE_INLINE Ptr(Pickable<R> v) : pObject(v.GetPtr())
-    {
-        // No AddRef() on purpose.
     }
 
     // Destructor
     OVR_FORCE_INLINE ~Ptr()
     {
-        if (pObject) pObject->Release();        
+        if (pObject)
+            pObject->Release();        
     }
 
     // Compares
-    OVR_FORCE_INLINE bool operator == (const Ptr &other) const       { return pObject == other.pObject; }
-    OVR_FORCE_INLINE bool operator != (const Ptr &other) const       { return pObject != other.pObject; }
+    OVR_FORCE_INLINE bool operator == (const Ptr &other) const
+    {
+        return pObject == other.pObject;
+    }
 
-    OVR_FORCE_INLINE bool operator == (C *pother) const              { return pObject == pother; }
-    OVR_FORCE_INLINE bool operator != (C *pother) const              { return pObject != pother; }
+    OVR_FORCE_INLINE bool operator != (const Ptr &other) const
+    {
+        return pObject != other.pObject;
+    }
 
+    OVR_FORCE_INLINE bool operator == (C *pother) const
+    {
+        return pObject == pother;
+    }
 
-    OVR_FORCE_INLINE bool operator < (const Ptr &other) const       { return pObject < other.pObject; }
+    OVR_FORCE_INLINE bool operator != (C *pother) const
+    {
+        return pObject != pother;
+    }
+
+    OVR_FORCE_INLINE bool operator < (const Ptr &other) const
+    {
+        return pObject < other.pObject;
+    }
 
     // Assignment
     template<class R>
     OVR_FORCE_INLINE const Ptr<C>& operator = (const Ptr<R> &src)
     {
         // By design we don't check for src == pObject, as we don't expect that to be the case the large majority of the time.
-        if (src) src->AddRef();
-        if (pObject) pObject->Release();        
+        if (src)
+            src->AddRef();
+        if (pObject)
+            pObject->Release();        
         pObject = src;
         return *this;
-    }   
+    }
+ 
     // Specialization
     OVR_FORCE_INLINE const Ptr<C>& operator = (const Ptr<C> &src)
     {
-        if (src) src->AddRef();
-        if (pObject) pObject->Release();        
+        if (src)
+            src->AddRef();
+        if (pObject)
+            pObject->Release();        
         pObject = src;
         return *this;
     }   
     
     OVR_FORCE_INLINE const Ptr<C>& operator = (C *psrc)
     {
-        if (psrc) psrc->AddRef();
-        if (pObject) pObject->Release();        
+        if (psrc)
+            psrc->AddRef();
+        if (pObject)
+            pObject->Release();        
         pObject = psrc;
         return *this;
-    }   
+    }
+
+    // This operator adopts the object's existing reference count rather than increment it.
     OVR_FORCE_INLINE const Ptr<C>& operator = (C &src)
     {       
-        if (pObject) pObject->Release();        
+        if (pObject)
+            pObject->Release();        
         pObject = &src;
         return *this;
     }
-    OVR_FORCE_INLINE Ptr<C>& operator = (Pickable<C> src)
-    {
-        return Pick(src);
-    }
-    template<class R>
-    OVR_FORCE_INLINE Ptr<C>& operator = (Pickable<R> src)
-    {
-        return Pick(src);
-    }
-    
+
     // Set Assignment
     template<class R>
     OVR_FORCE_INLINE Ptr<C>& SetPtr(const Ptr<R> &src)
     {
-        if (src) src->AddRef();
-        if (pObject) pObject->Release();
+        if (src)
+            src->AddRef();
+        if (pObject)
+            pObject->Release();
         pObject = src;
         return *this;
     }
     // Specialization
     OVR_FORCE_INLINE Ptr<C>& SetPtr(const Ptr<C> &src)
     {
-        if (src) src->AddRef();
-        if (pObject) pObject->Release();
+        if (src)
+            src->AddRef();
+        if (pObject)
+            pObject->Release();
         pObject = src;
         return *this;
-    }   
-    
+    }
+
     OVR_FORCE_INLINE Ptr<C>& SetPtr(C *psrc)
     {
-        if (psrc) psrc->AddRef();
-        if (pObject) pObject->Release();
+        if (psrc)
+            psrc->AddRef();
+        if (pObject)
+            pObject->Release();
         pObject = psrc;
         return *this;
-    }   
+    }
+
+    // This function adopts the object's existing reference count rather than increment it.
     OVR_FORCE_INLINE Ptr<C>& SetPtr(C &src)
     {       
-        if (pObject) pObject->Release();
+        if (pObject)
+            pObject->Release();
         pObject = &src;
         return *this;
-    }
-    OVR_FORCE_INLINE Ptr<C>& SetPtr(Pickable<C> src)
-    {       
-        return Pick(src);
     }
 
     // Nulls ref-counted pointer without decrement
@@ -496,69 +472,82 @@ public:
     // Clears the pointer to the object
     OVR_FORCE_INLINE void    Clear()
     {
-        if (pObject) pObject->Release();
+        if (pObject) 
+            pObject->Release();
         pObject = 0;
     }
 
     // Obtain pointer reference directly, for D3D interfaces
-    OVR_FORCE_INLINE C*& GetRawRef()                 { return pObject; }
+    OVR_FORCE_INLINE C*& GetRawRef()
+    {
+        return pObject;
+    }
 
     // Access Operators
-    OVR_FORCE_INLINE C* GetPtr() const               { return pObject; }
-    OVR_FORCE_INLINE C& operator * () const          { return *pObject; }
-    OVR_FORCE_INLINE C* operator -> ()  const        { return pObject; }
+    OVR_FORCE_INLINE C* GetPtr() const
+    {
+        return pObject;
+    }
+
+    OVR_FORCE_INLINE C& operator * () const
+    {
+        return *pObject;
+    }
+
+    OVR_FORCE_INLINE C* operator -> ()  const
+    {
+        return pObject;
+    }
+
     // Conversion                   
-    OVR_FORCE_INLINE operator C* () const            { return pObject; }
-
-    // Pickers.
-
-    // Pick a value.
-    OVR_FORCE_INLINE Ptr<C>& Pick(Ptr<C>& other)
+    OVR_FORCE_INLINE operator C* () const
     {
-        if (&other != this)
-        {
-            if (pObject) pObject->Release();
-            pObject = other.pObject;
-            other.pObject = 0;
-        }
-
-        return *this;
+        return pObject;
     }
 
-    OVR_FORCE_INLINE Ptr<C>& Pick(Pickable<C> v)
-    {
-        if (v.GetPtr() != pObject)
-        {
-            if (pObject) pObject->Release();
-            pObject = v.GetPtr();
-        }
-
-        return *this;
-    }
-
-    template<class R>
-    OVR_FORCE_INLINE Ptr<C>& Pick(Pickable<R> v)
-    {
-        if (v.GetPtr() != pObject)
-        {
-            if (pObject) pObject->Release();
-            pObject = v.GetPtr();
-        }
-
-        return *this;
-    }
-
-    OVR_FORCE_INLINE Ptr<C>& Pick(C* p)
-    {
-        if (p != pObject)
-        {
-            if (pObject) pObject->Release();
-            pObject = p;
-        }
-
-        return *this;
-    }
 };
+
+
+// LockedPtr
+//
+// Helper class to simplify thread-safety of the TrackingManager.
+// It wraps the Ptr<> object it contains in a Lock.
+template<class T>
+class LockedPtr
+{
+public:
+    LockedPtr(Lock* lock = nullptr) :
+        TheLock(lock)
+    {
+    }
+
+    void Set(T* value)
+    {
+        OVR_ASSERT(TheLock);
+        TheLock->DoLock();
+        Ptr<T> oldPtr = ThePtr; // Keep a reference to the old ptr
+        ThePtr = value; // Change/decrement the old ptr (cannot die here due to oldPtr)
+        TheLock->Unlock();
+
+        // Release the old Ptr reference here, outside of the lock
+        // so that the object will not die while TheLock is held.
+    }
+
+    template<class S>
+    void Get(Ptr<S>& outputPtr) const
+    {
+        OVR_ASSERT(TheLock);
+        TheLock->DoLock();
+        Ptr<T> retval = ThePtr;
+        TheLock->Unlock();
+        outputPtr = retval;
+    }
+
+protected:
+    mutable Lock* TheLock;
+    Ptr<T> ThePtr;
+};
+
 
 } // OVR
 

@@ -6,16 +6,16 @@ Content     :   Template implementation for Array
 Created     :   September 19, 2012
 Notes       : 
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -46,7 +46,7 @@ struct ArrayDefaultPolicy
 
     size_t GetMinCapacity() const { return 0; }
     size_t GetGranularity() const { return 4; }
-    bool  NeverShrinking() const { return 0; }
+    bool  NeverShrinking() const { return 1; }
 
     size_t GetCapacity()    const      { return Capacity; }
     void  SetCapacity(size_t capacity) { Capacity = capacity; }
@@ -99,8 +99,11 @@ struct ArrayDataBase
 
     ~ArrayDataBase() 
     {
-        Allocator::DestructArray(Data, Size);
-        Allocator::Free(Data);
+        if (Data)
+        {
+            Allocator::DestructArray(Data, Size);
+            Allocator::Free(Data);
+        }
     }
 
     size_t GetCapacity() const 
@@ -110,9 +113,12 @@ struct ArrayDataBase
 
     void ClearAndRelease()
     {
-        Allocator::DestructArray(Data, Size);
-        Allocator::Free(Data);
-        Data = 0;
+        if (Data)
+        {
+            Allocator::DestructArray(Data, Size);
+            Allocator::Free(Data);
+            Data = 0;
+        }
         Size = 0;
         Policy.SetCapacity(0);
     }
@@ -240,6 +246,7 @@ struct ArrayData : ArrayDataBase<T, Allocator, SizePolicy>
     void PushBack(const ValueType& val)
     {
         BaseType::ResizeNoConstruct(this->Size + 1);
+        OVR_ASSERT(this->Data != NULL);
         Allocator::Construct(this->Data + this->Size - 1, val);
     }
 
@@ -393,31 +400,31 @@ public:
     // Basic access.
     ValueType& At(size_t index)
     {
-        OVR_ASSERT(index < Data.Size);
-        return Data.Data[index]; 
+        OVR_ASSERT((Data.Data) && (index < Data.Size)); // Asserting that Data.Data is valid helps static analysis tools.
+        return Data.Data[index];
     }
     const ValueType& At(size_t index) const
     {
-        OVR_ASSERT(index < Data.Size);
-        return Data.Data[index]; 
+        OVR_ASSERT((Data.Data) && (index < Data.Size));
+        return Data.Data[index];
     }
 
     ValueType ValueAt(size_t index) const
     {
-        OVR_ASSERT(index < Data.Size);
-        return Data.Data[index]; 
+        OVR_ASSERT((Data.Data) && (index < Data.Size));
+        return Data.Data[index];
     }
 
     // Basic access.
     ValueType& operator [] (size_t index)
     {
-        OVR_ASSERT(index < Data.Size);
+        OVR_ASSERT((Data.Data) && (index < Data.Size));
         return Data.Data[index]; 
     }
     const ValueType& operator [] (size_t index) const
     {
-        OVR_ASSERT(index < Data.Size);
-        return Data.Data[index]; 
+        OVR_ASSERT((Data.Data) && (index < Data.Size));
+        return Data.Data[index];
     }
 
     // Raw pointer to the data. Use with caution!
@@ -455,6 +462,7 @@ public:
 
     ValueType Pop()
     {
+        OVR_ASSERT((Data.Data) && (Data.Size > 0));
         ValueType t = Back();
         PopBack();
         return t;
@@ -473,6 +481,7 @@ public:
     const SelfType& operator = (const SelfType& a)   
     {
         Resize(a.GetSize());
+        OVR_ASSERT((Data.Data != NULL) || (Data.Size == 0));
         for (size_t i = 0; i < Data.Size; i++) {
             *(Data.Data + i) = a[i];
         }
@@ -505,7 +514,7 @@ public:
     // RemoveAt.
     void    RemoveAt(size_t index)
     {
-        OVR_ASSERT(index < Data.Size);
+        OVR_ASSERT((Data.Data) && (index < Data.Size));
         if (Data.Size == 1)
         {
             Clear();
@@ -526,7 +535,7 @@ public:
     // is important, otherwise use it instead of regular RemoveAt().
     void    RemoveAtUnordered(size_t index)
     {
-        OVR_ASSERT(index < Data.Size);
+        OVR_ASSERT((Data.Data) && (index < Data.Size));
         if (Data.Size == 1)
         {
             Clear();
@@ -666,6 +675,10 @@ public:
     Iterator End()   { return Iterator(this, (intptr_t)GetSize()); }
     Iterator Last()  { return Iterator(this, (intptr_t)GetSize() - 1); }
 
+    // C++11 ranged-based for loop support.
+    Iterator begin() { return Begin(); }
+    Iterator end() { return End(); }
+
     class ConstIterator
     {
         const SelfType* pArray;
@@ -755,7 +768,7 @@ public:
     typedef ArrayBase<ArrayData<T, ContainerAllocator<T>, SizePolicy> > BaseType;
 
     Array() : BaseType() {}
-    Array(size_t size) : BaseType(size) {}
+    explicit Array(size_t size) : BaseType(size) {}
     Array(const SizePolicyType& p) : BaseType() { SetSizePolicy(p); }
     Array(const SelfType& a) : BaseType(a) {}
     const SelfType& operator=(const SelfType& a) { BaseType::operator=(a); return *this; }
@@ -777,7 +790,7 @@ public:
     typedef ArrayBase<ArrayData<T, ContainerAllocator_POD<T>, SizePolicy> > BaseType;
 
     ArrayPOD() : BaseType() {}
-    ArrayPOD(size_t size) : BaseType(size) {}
+    explicit ArrayPOD(size_t size) : BaseType(size) {}
     ArrayPOD(const SizePolicyType& p) : BaseType() { SetSizePolicy(p); }
     ArrayPOD(const SelfType& a) : BaseType(a) {}
     const SelfType& operator=(const SelfType& a) { BaseType::operator=(a); return *this; }
@@ -799,7 +812,7 @@ public:
     typedef ArrayBase<ArrayData<T, ContainerAllocator_CPP<T>, SizePolicy> > BaseType;
 
     ArrayCPP() : BaseType() {}
-    ArrayCPP(size_t size) : BaseType(size) {}
+    explicit ArrayCPP(size_t size) : BaseType(size) {}
     ArrayCPP(const SizePolicyType& p) : BaseType() { SetSizePolicy(p); }
     ArrayCPP(const SelfType& a) : BaseType(a) {}
     const SelfType& operator=(const SelfType& a) { BaseType::operator=(a); return *this; }

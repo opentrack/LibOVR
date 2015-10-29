@@ -6,16 +6,16 @@ Content     :   Command queue for operations executed on a thread
 Created     :   October 29, 2012
 Author      :   Michael Antonov
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,10 +28,10 @@ limitations under the License.
 #ifndef OVR_ThreadCommandQueue_h
 #define OVR_ThreadCommandQueue_h
 
-#include "../Kernel/OVR_Types.h"
-#include "../Kernel/OVR_List.h"
-#include "../Kernel/OVR_Atomic.h"
-#include "../Kernel/OVR_Threads.h"
+#include "OVR_Types.h"
+#include "OVR_List.h"
+#include "OVR_Atomic.h"
+#include "OVR_Threads.h"
 
 namespace OVR {
 

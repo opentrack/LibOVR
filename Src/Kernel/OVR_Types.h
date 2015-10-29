@@ -6,16 +6,16 @@ Content     :   Standard library defines and simple types
 Created     :   September 19, 2012
 Notes       : 
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,9 +25,10 @@ limitations under the License.
 
 ************************************************************************************/
 
-#ifndef OVR_Types_H
-#define OVR_Types_H
+#ifndef OVR_Types_h
+#define OVR_Types_h
 
+#include <cstddef>
 #include "OVR_Compiler.h"
 
 
@@ -38,39 +39,112 @@ limitations under the License.
 #  endif
 #endif
 
-
 //-----------------------------------------------------------------------------------
-// ****** Operating System
+// ****** Operating system identification
+//
+// Try to use the most generic version of these defines as possible in order to achieve
+// the simplest portable code. For example, instead of using #if (defined(OVR_OS_IPHONE) || defined(OVR_OS_MAC)),
+// consider using #if defined(OVR_OS_APPLE).
 //
 // Type definitions exist for the following operating systems: (OVR_OS_x)
 //
-//    WIN32    - Win32 (Windows 95/98/ME and Windows NT/2000/XP)
-//    DARWIN   - Darwin OS (Mac OS X)
-//    LINUX    - Linux
-//    ANDROID  - Android
-//    IPHONE   - iPhone
+//    WIN32      - Win32 and Win64 (Windows XP and later) Does not include Microsoft phone and console platforms, despite that Microsoft's _WIN32 may be defined by the compiler for them.
+//    WIN64      - Win64 (Windows XP and later)
+//    MAC        - Mac OS X (may be defined in addition to BSD)
+//    LINUX      - Linux
+//    BSD        - BSD Unix
+//    ANDROID    - Android (may be defined in addition to LINUX)
+//    IPHONE     - iPhone
+//    MS_MOBILE  - Microsoft mobile OS.
+//
+//  Meta platforms
+//    MS        - Any OS by Microsoft (e.g. Win32, Win64, phone, console)
+//    APPLE     - Any OS by Apple (e.g. iOS, OS X)
+//    UNIX      - Linux, BSD, Mac OS X.
+//    MOBILE    - iOS, Android, Microsoft phone
+//    CONSOLE   - Console platforms.
+//
 
 #if (defined(__APPLE__) && (defined(__GNUC__) ||\
      defined(__xlC__) || defined(__xlc__))) || defined(__MACOS__)
 #  if (defined(__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__) || defined(__IPHONE_OS_VERSION_MIN_REQUIRED))
-#    define OVR_OS_IPHONE
+#      if !defined(OVR_OS_IPHONE)
+#        define OVR_OS_IPHONE
+#      endif
 #  else
-#    define OVR_OS_DARWIN
-#    define OVR_OS_MAC
+#    if !defined(OVR_OS_MAC)
+#      define OVR_OS_MAC
+#    endif
+#    if !defined(OVR_OS_DARWIN)
+#      define OVR_OS_DARWIN
+#    endif
+#    if !defined(OVR_OS_BSD)
+#      define OVR_OS_BSD
+#    endif
 #  endif
 #elif (defined(WIN64) || defined(_WIN64) || defined(__WIN64__))
-#  define OVR_OS_WIN32
+#  if !defined(OVR_OS_WIN64)
+#      define OVR_OS_WIN64
+#  endif
+#  if !defined(OVR_OS_WIN32)
+#      define OVR_OS_WIN32  //Can be a 32 bit Windows build or a WOW64 support for Win32.  In this case WOW64 support for Win32.
+#  endif
 #elif (defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__))
-#  define OVR_OS_WIN32
+#  if !defined(OVR_OS_WIN32)
+#      define OVR_OS_WIN32  //Can be a 32 bit Windows build or a WOW64 support for Win32.  In this case WOW64 support for Win32.
+#  endif
+#elif defined(ANDROID) || defined(__ANDROID__)
+#  if !defined(OVR_OS_ANDROID)
+#      define OVR_OS_ANDROID
+#  endif
+#  if !defined(OVR_OS_LINUX)
+#      define OVR_OS_LINUX
+#  endif
 #elif defined(__linux__) || defined(__linux)
-#  define OVR_OS_LINUX
+#  if !defined(OVR_OS_LINUX)
+#      define OVR_OS_LINUX
+#  endif
+#elif defined(_BSD_) || defined(__FreeBSD__)
+#  if !defined(OVR_OS_BSD)
+#      define OVR_OS_BSD
+#  endif
 #else
-#  define OVR_OS_OTHER
+#  if !defined(OVR_OS_OTHER)
+#      define OVR_OS_OTHER
+#  endif
 #endif
 
-#if defined(ANDROID)
-#  define OVR_OS_ANDROID
+#if !defined(OVR_OS_MS_MOBILE)
+#   if (defined(_M_ARM) || defined(_M_IX86) || defined(_M_AMD64)) && !defined(OVR_OS_WIN32) && !defined(OVR_OS_CONSOLE)
+#       define OVR_OS_MS_MOBILE
+#   endif
 #endif
+
+#if !defined(OVR_OS_MS)
+#   if defined(OVR_OS_WIN32) || defined(OVR_OS_WIN64) || defined(OVR_OS_MS_MOBILE)
+#       define OVR_OS_MS
+#   endif
+#endif
+
+#if !defined(OVR_OS_APPLE)
+#   if defined(OVR_OS_MAC) || defined(OVR_OS_IPHONE)
+#       define OVR_OS_APPLE
+#   endif
+#endif
+
+#if !defined(OVR_OS_UNIX)
+#   if defined(OVR_OS_ANDROID) || defined(OVR_OS_BSD) || defined(OVR_OS_LINUX) || defined(OVR_OS_MAC)
+#       define OVR_OS_UNIX
+#   endif
+#endif
+
+#if !defined(OVR_OS_MOBILE)
+#   if defined(OVR_OS_ANDROID) || defined(OVR_OS_IPHONE) || defined(OVR_OS_MS_MOBILE)
+#       define OVR_OS_MOBILE
+#   endif
+#endif
+
+
 
 
 //-----------------------------------------------------------------------------------
@@ -86,7 +160,7 @@ limitations under the License.
 //    OTHER      - CPU for which no special support is present or needed
 
 
-#if defined(__x86_64__) || defined(WIN64) || defined(_WIN64) || defined(__WIN64__)
+#if defined(__x86_64__) || defined(WIN64) || defined(_WIN64) || defined(__WIN64__) || defined(_M_AMD64)
 #  define OVR_CPU_X86_64
 #  define OVR_64BIT_POINTERS
 #elif defined(__i386__) || defined(OVR_OS_WIN32)
@@ -112,7 +186,7 @@ limitations under the License.
 //    Altivec    - Available on all modern ppc processors.
 //    Neon       - Available on some armv7+ processors.
 
-#if defined(__SSE__) || defined(OVR_OS_WIN32)
+#if defined(__SSE__) || defined(_M_IX86) || defined(_M_AMD64) // _M_IX86 and _M_AMD64 are Microsoft identifiers for Intel-based platforms.
 #  define  OVR_CPU_SSE
 #endif // __SSE__
 
@@ -138,6 +212,12 @@ limitations under the License.
 #    pragma warning(disable : 4714)  // _force_inline not inlined
 #    pragma warning(disable : 4786)  // Debug variable name longer than 255 chars
 #  endif // (OVR_CC_MSVC<1300)
+#if (OVR_CC_MSVC>1800)
+#   pragma warning(disable: 4265)    // Class has virtual functions, but destructor is not virtual
+#   pragma warning(disable: 4312)    // Conversion from 'type1' to 'type2' of greater size
+#   pragma warning(disable: 4311)    // Pointer truncation from 'type' to 'type'
+#   pragma warning(disable: 4302)    // Truncation from 'type 1' to 'type 2'
+#endif // OVR_CC_MSVC>1800
 #endif // (OVR_CC_MSVC)
 
 
@@ -170,8 +250,8 @@ limitations under the License.
 //-----------------------------------------------------------------------------------
 // ***** int8_t, int16_t, etc.
 
-#if defined(OVR_CC_MSVC) && (OVR_CC_VER <= 1500) // VS2008 and earlier
-    typedef signed char        int8_t; 
+#if defined(OVR_CC_MSVC) && (OVR_CC_VERSION <= 1500) // VS2008 and earlier
+    typedef signed char        int8_t;
     typedef unsigned char     uint8_t;
     typedef signed short      int16_t;
     typedef unsigned short   uint16_t;
@@ -191,12 +271,13 @@ namespace OVR {
 
 typedef char            Char;
 
+
 // Pointer-sized integer
 typedef size_t          UPInt;
-typedef ptrdiff_t       SPInt;
+typedef std::ptrdiff_t  SPInt;
 
 
-#if defined(OVR_OS_WIN32)
+#if defined(OVR_OS_MS)
 
 typedef char            SByte;  // 8 bit Integer (Byte)
 typedef unsigned char   UByte;
@@ -238,21 +319,27 @@ typedef uint64_t        UInt64;
 //linux PID is a signed int32 (already defined)
 //win32 PID is an unsigned int64
 #ifdef OVR_OS_WIN32
-//process ID representation
-typedef unsigned long pid_t;
+    //process ID representation
+    typedef unsigned long pid_t;
 #endif
+
+// OVR_INVALID_PID defines an invalid process id in a portable way. 
+#if !defined(OVR_INVALID_PID)
+    #define OVR_INVALID_PID 0
+#endif
+
 
 struct OVR_GUID
 {
-	uint32_t Data1;
-	uint16_t Data2;
-	uint16_t Data3;
-	uint8_t  Data4[8];
+    uint32_t Data1;
+    uint16_t Data2;
+    uint16_t Data3;
+    uint8_t  Data4[8];
 };
 
 
 
-} // OVR
+} // namespace OVR
 
 
 
@@ -306,9 +393,9 @@ struct OVR_GUID
 #define OVR_BIG_ENDIAN          2
 
 
-#if defined(OVR_OS_WIN32)
+#if defined(OVR_OS_MS)
     
-    // ***** Win32
+    // ***** Windows and non-desktop platforms
 
     // Byte order
     #define OVR_BYTE_ORDER    OVR_LITTLE_ENDIAN
@@ -434,7 +521,7 @@ struct OVR_GUID
 // Example usage:
 //     printf("Line: %s", OVR_STRINGIZE(__LINE__));
 //
-#if !defined(OVR_STRINGIFY)
+#if !defined(OVR_STRINGIZE)
     #define OVR_STRINGIZEIMPL(x) #x
     #define OVR_STRINGIZE(x)     OVR_STRINGIZEIMPL(x)
 #endif
@@ -496,43 +583,169 @@ struct OVR_GUID
 
 
 //-----------------------------------------------------------------------------------
-// ***** OVR_DEBUG_BREAK, OVR_ASSERT
+// ***** OVR_DEBUG_BREAK, OVR_DEBUG_CODE, 
+//       OVR_ASSERT, OVR_ASSERT_M, OVR_ASSERT_AND_UNUSED
 //
-// If not in debug build, macros do nothing
-#ifndef OVR_BUILD_DEBUG
+// Macros have effect only in debug builds.
+//
+// Example OVR_DEBUG_BREAK usage (note the lack of parentheses):
+//     #define MY_ASSERT(expression) do { if (!(expression)) { OVR_DEBUG_BREAK; } } while(0)
+//
+// Example OVR_DEBUG_CODE usage:
+//     OVR_DEBUG_CODE(printf("debug test\n");)
+//       or
+//     OVR_DEBUG_CODE(printf("debug test\n"));
+//
+// Example OVR_ASSERT usage:
+//     OVR_ASSERT(count < 100);
+//     OVR_ASSERT_M(count < 100, "count is too high");
+//
+#if defined(OVR_BUILD_DEBUG)
+    // Causes a debugger breakpoint in debug builds. Has no effect in release builds.
+    // Microsoft Win32 specific debugging support
+    #if defined(OVR_CC_MSVC)
+        // The __debugbreak() intrinsic works for the MSVC debugger, but when the debugger
+        // is not attached we want our VectoredExceptionHandler to catch assertions, and
+        // VEH does not trap "int 3" breakpoints.
+        #define OVR_DEBUG_BREAK __debugbreak()
+    #elif defined(OVR_CC_GNU) || defined(OVR_CC_CLANG)
+        #if defined(OVR_CPU_X86) || defined(OVR_CPU_X86_64)
+            #define OVR_DEBUG_BREAK do { OVR_ASM("int $3\n\t"); } while(0)
+        #else
+            #define OVR_DEBUG_BREAK __builtin_trap()
+        #endif
+    #else
+        #define OVR_DEBUG_BREAK do { *((int *) 0) = 1; } while(0)
+    #endif
 
-#  define OVR_DEBUG_CODE(c)
-#  define OVR_DEBUG_BREAK  ((void)0)
-#  define OVR_ASSERT(p)    ((void)0)
+    // The expression is defined only in debug builds. It is defined away in release builds.
+    #define OVR_DEBUG_CODE(c) c
+
+    // In debug builds this tests the given expression; if false then executes OVR_DEBUG_BREAK,
+    // if true then no action. Has no effect in release builds.
+    #if defined(__clang_analyzer__) // During static analysis, make it so the analyzer thinks that failed asserts result in program exit. Reduced false positives.
+        #include <stdlib.h>
+        #define OVR_FAIL_M(message)      do { OVR_DEBUG_BREAK; exit(0); } while(0)
+        #define OVR_FAIL()               do { OVR_DEBUG_BREAK; exit(0); } while(0)
+        #define OVR_FAIL_F(...)          do { OVR_DEBUG_BREAK; exit(0); } while(0)
+        #define OVR_ASSERT_M(p, message) do { if (!(p))  { OVR_DEBUG_BREAK; exit(0); } } while(0)
+        #define OVR_ASSERT(p)            do { if (!(p))  { OVR_DEBUG_BREAK; exit(0); } } while(0)
+        #define OVR_ASSERT_F(p, ...)     do { if (!(p))  { OVR_DEBUG_BREAK; exit(0); } } while(0)
+    #else
+        #include <stdlib.h>
+
+        namespace OVR{ void OVR_Fail_F(const char* format, ...); }
+
+        // OVR::IsAutomationRunning() is a flag that indicates the current process is running automated tests.
+        // Tests are usually running using GoogleTest or some other test harness
+        //
+        // Using OVR_DEBUG_BREAK will cause the test to bail out and kill the current process.
+        // abort() will fail the test and let subsequent tests run.
+        #define OVR_FAIL_M(message)                                                                            \
+            {                                                                                                  \
+                intptr_t ovrAssertUserParam;                                                                   \
+                OVR::OVRAssertionHandler ovrAssertUserHandler = OVR::GetAssertionHandler(&ovrAssertUserParam); \
+                                                                                                               \
+                if (OVR::IsAutomationRunning() && !OVR::OVRIsDebuggerPresent())                                \
+                {                                                                                              \
+					/* Do nothing to allow error code examination */										   \
+                }                                                                                              \
+                else if (ovrAssertUserHandler && !OVR::OVRIsDebuggerPresent())                                 \
+                {                                                                                              \
+                    ovrAssertUserHandler(ovrAssertUserParam, "Assertion failure", message);                    \
+                }                                                                                              \
+                else                                                                                           \
+                {                                                                                              \
+                    OVR_DEBUG_BREAK;                                                                           \
+                }                                                                                              \
+            }                                                                                                  \
+
+        #define OVR_FAIL()  \
+            OVR_FAIL_M("Assertion failure")  
+
+        #define OVR_FAIL_F(format, ...)         \
+            do {                                \
+                OVR_Fail_F(format, __VA_ARGS__) \
+            } while(0)
+
+        // void OVR_ASSERT_M(bool expression, const char* message);
+        // Note: The expression below is expanded into all usage of this assertion macro. 
+        // We should try to minimize the size of the expanded code to the extent possible.
+        #define OVR_ASSERT_M(p, message)   \
+            do {                           \
+                if (!(p))                  \
+                    OVR_FAIL_M(message)    \
+            } while(0)
+
+        // void OVR_ASSERT(bool expression);
+        #define OVR_ASSERT(p) OVR_ASSERT_M((p), (#p))
+
+        // void OVR_ASSERT_F(bool expression, const char* format, ...);
+        #define OVR_ASSERT_F(p, format, ...)         \
+            do {                                     \
+                if (!(p))                            \
+                    OVR_Fail_F(format, __VA_ARGS__); \
+            } while(0)
+
+    #endif
+
+    // Acts the same as OVR_ASSERT in debug builds. Acts the same as OVR_UNUSED in release builds.
+    // Example usage: OVR_ASSERT_AND_UNUSED(x < 30, x);
+    #define OVR_ASSERT_AND_UNUSED(expression, value) OVR_ASSERT(expression); OVR_UNUSED(value)
 
 #else 
 
-// Microsoft Win32 specific debugging support
-#if defined(OVR_OS_WIN32)
-#  ifdef OVR_CPU_X86
-#    if defined(__cplusplus_cli)
-#      define OVR_DEBUG_BREAK   do { __debugbreak(); } while(0)
-#    elif defined(OVR_CC_GNU)
-#      define OVR_DEBUG_BREAK   do { OVR_ASM("int $3\n\t"); } while(0)
-#    else
-#      define OVR_DEBUG_BREAK   do { OVR_ASM int 3 } while (0)
-#    endif
-#  else
-#    define OVR_DEBUG_BREAK     do { __debugbreak(); } while(0)
-#  endif
-// Unix specific debugging support
-#elif defined(OVR_CPU_X86) || defined(OVR_CPU_X86_64)
-#  define OVR_DEBUG_BREAK       do { OVR_ASM("int $3\n\t"); } while(0)
-#else
-#  define OVR_DEBUG_BREAK       do { *((int *) 0) = 1; } while(0)
-#endif
+    // The expression is defined only in debug builds. It is defined away in release builds.
+    #define OVR_DEBUG_CODE(c)
 
-#define OVR_DEBUG_CODE(c) c
+    // Causes a debugger breakpoint in debug builds. Has no effect in release builds.
+    #define OVR_DEBUG_BREAK  ((void)0)
 
-// This will cause compiler breakpoint
-#define OVR_ASSERT(p)           do { if (!(p))  { OVR_DEBUG_BREAK; } } while(0)
+    // In debug builds this tests the given expression; if false then executes OVR_DEBUG_BREAK,
+    // if true then no action. Has no effect in release builds.
+    #define OVR_FAIL_M(message)  ((void)0)
+    #define OVR_FAIL()           ((void)0)
+    #define OVR_FAIL_F(...)      ((void)0)
+    #define OVR_ASSERT_M(p, m)   ((void)0)
+    #define OVR_ASSERT(p)        ((void)0)
+    #define OVR_ASSERT_F(p, ...) ((void)0)
+
+    // Acts the same as OVR_ASSERT in debug builds. Acts the same as OVR_UNUSED in release builds.
+    // Example usage: OVR_ASSERT_AND_UNUSED(x < 30, x);
+    #define OVR_ASSERT_AND_UNUSED(expression, value) OVR_UNUSED(value)
 
 #endif // OVR_BUILD_DEBUG
+
+
+
+// Assert handler
+// The user of this library can override the default assertion handler and provide their own.
+namespace OVR
+{
+    // The return value meaning is reserved for future definition and currently has no effect.
+    typedef intptr_t (*OVRAssertionHandler)(intptr_t userParameter, const char* title, const char* message);
+
+    // Returns the current assertion handler.
+    OVRAssertionHandler GetAssertionHandler(intptr_t* userParameter = NULL);
+
+    // Sets the current assertion handler.
+    // The default assertion handler if none is set simply issues a debug break.
+    // Example usage:
+    //     intptr_t CustomAssertionHandler(intptr_t /*userParameter*/, const char* title, const char* message)) { 
+    //         MessageBox(title, message);
+    //         OVR_DEBUG_BREAK;
+    //     }
+    void SetAssertionHandler(OVRAssertionHandler assertionHandler, intptr_t userParameter = 0);
+
+    // Implements the default assertion handler.
+    intptr_t DefaultAssertionHandler(intptr_t userParameter, const char* title, const char* message);
+    
+    // Checks if the current application is an automated test
+    bool IsAutomationRunning();
+
+    // Currently defined in OVR_DebugHelp.cpp
+    bool OVRIsDebuggerPresent();
+}
 
 
 // ------------------------------------------------------------------------
@@ -540,41 +753,15 @@ struct OVR_GUID
 //
 // Compile-time assert; produces compiler error if condition is false.
 // The expression must be a compile-time constant expression.
+// This macro is deprecated in favor of static_assert, which provides better
+// compiler output and works in a broader range of contexts.
 // 
 // Example usage:
 //     OVR_COMPILER_ASSERT(sizeof(int32_t == 4));
 
-#if OVR_CPP_NO_STATIC_ASSERT
-    #define OVR_COMPILER_ASSERT(x)  { int zero = 0; switch(zero) {case 0: case x:;} }
-#else
-    #define OVR_COMPILER_ASSERT(x)  static_assert((x), #x)
-#endif
-
-
-// ------------------------------------------------------------------------
-// ***** static_assert
-//
-// Portable support for C++11 static_assert.
-// Acts as if the following were declared:
-//     void static_assert(bool const_expression, const char* msg);
-//
-// Example usage:
-//     static_assert(sizeof(int32_t) == 4, "int32_t expected to be 4 bytes.");
-
-#if defined(OVR_CPP_NO_STATIC_ASSERT)
-    #if defined(OVR_CC_GNU) || defined(OVR_CC_CLANG)
-        #define OVR_SA_UNUSED __attribute__((unused))
-    #else
-        #define OVR_SA_UNUSED
-    #endif
-    #define OVR_SA_PASTE(a,b) a##b
-    #define OVR_SA_HELP(a,b)  OVR_SA_PASTE(a,b)
-
-    #if defined(__COUNTER__)
-        #define static_assert(expression, msg) typedef char OVR_SA_HELP(compileTimeAssert, __COUNTER__) [((expression) != 0) ? 1 : -1] OVR_SA_UNUSED
-    #else
-        #define static_assert(expression, msg) typedef char OVR_SA_HELP(compileTimeAssert, __LINE__) [((expression) != 0) ? 1 : -1] OVR_SA_UNUSED
-    #endif
+#if !defined(OVR_COMPILER_ASSERT)
+    #define OVR_COMPILER_ASSERT(expression)        static_assert(expression, #expression)
+    #define OVR_COMPILER_ASSERT_M(expression, msg) static_assert(expression, msg)
 #endif
 
 
@@ -586,19 +773,98 @@ struct OVR_GUID
 //     while(!finished())
 //         OVR_PROCESSOR_PAUSE();
 
-#if defined(OVR_CPU_X86) || defined(OVR_CPU_X86_64)
-    #if defined(OVR_CC_GNU) || defined(OVR_CC_CLANG)
-        #define OVR_PROCESSOR_PAUSE() asm volatile("pause" ::: "memory") // Consumes 38-40 clocks on current Intel x86 and x64 hardware.
-    #elif defined(OVR_CC_MSVC)
-        #include <emmintrin.h>
-        #pragma intrinsic(_mm_pause) // Maps to asm pause.
-        #define OVR_PROCESSOR_PAUSE _mm_pause
+#if !defined(OVR_PROCESSOR_PAUSE)
+    #if defined(OVR_CPU_X86) || defined(OVR_CPU_X86_64)
+        #if defined(OVR_CC_GNU) || defined(OVR_CC_CLANG)
+            #define OVR_PROCESSOR_PAUSE() asm volatile("pause" ::: "memory") // Consumes 38-40 clocks on current Intel x86 and x64 hardware.
+        #elif defined(OVR_CC_MSVC)
+            #include <emmintrin.h>
+            #pragma intrinsic(_mm_pause) // Maps to asm pause.
+            #define OVR_PROCESSOR_PAUSE _mm_pause
+        #else
+            #define OVR_PROCESSOR_PAUSE()
+        #endif
     #else
         #define OVR_PROCESSOR_PAUSE()
     #endif
-#else
-    #define OVR_PROCESSOR_PAUSE()
 #endif
+
+
+
+// ------------------------------------------------------------------------
+// ***** OVR_union_cast
+//
+// Implements a reinterpret cast which is strict-aliasing safe. Recall that 
+// it's not sufficient to do a C++ reinterpret_cast or C-style cast in order
+// to avoid strict-aliasing violation. The downside to this utility is that 
+// it works by copying the variable through a union, and this can be have
+// a performance hit if the type is not small. 
+//
+// Requires both types to be POD (plain old data), such as built-in types
+// or C style structs.
+//  
+// Example usage:
+//    double  d = 1.0;
+//    int64_t i = union_cast<int64_t>(d);
+//
+// Note that you cannot safetly use union_cast to alias the contents of two
+// unrelated pointers. It can be used to alias values, not pointers to values.
+
+namespace OVR
+{
+    template <class DestType, class SourceType>
+    DestType union_cast(SourceType sourceValue)
+    {
+        static_assert(sizeof(DestType) == sizeof(SourceType), "union_cast size mismatch");
+        static_assert(OVR_ALIGNOF(DestType) == OVR_ALIGNOF(SourceType), "union_cast alignment mismatch");
+
+        union SourceDest
+        {
+            SourceType sourceValue;
+            DestType   destValue;
+        };
+
+        SourceDest sd = { sourceValue };
+        return sd.destValue;
+    }
+}
+
+
+
+// ------------------------------------------------------------------------
+// ***** OVR_VA_COPY
+//
+// Implements a version of C++11's va_copy that works with pre-C++11 compilers.
+//
+// Example usage:
+//     void Printf(char* pFormat, ...)
+//     {
+//         va_list argList;
+//         va_list argListCopy;
+//
+//         va_start(argList, pFormat);
+//         OVR_VA_COPY(argListCopy, argList);
+//         <use argList and argListCopy>
+//           
+//         va_end(argList);
+//         va_end(argListCopy);
+//     }
+//
+#if !defined(OVR_VA_COPY)
+    #if defined(__GNUC__) || defined(__clang__) // GCC / clang
+        #define OVR_VA_COPY(dest, src) va_copy((dest), (src))
+    #elif defined(_MSC_VER) && (_MSC_VER >= 1800) // VS2013+
+        #define OVR_VA_COPY(dest, src) va_copy((dest), (src))
+    #else
+        // This may not work for some platforms, depending on their ABI.
+        // It works for many Microsoft platforms.
+        #define OVR_VA_COPY(dest, src) memcpy(&(dest), &(src), sizeof(va_list))
+    #endif
+#endif
+ 
+ 
+ 
+
 
 
 // ------------------------------------------------------------------------
@@ -676,6 +942,36 @@ struct OVR_GUID
         #define OVR_DEPRECATED_MSG(msg)
     #endif
 #endif
+
+
+
+//-----------------------------------------------------------------------------------
+// ***** OVR_SELECTANY
+// 
+// Implements a wrapper for Microsoft's __declspec(selectany)
+//
+// Example usage:
+//    SomeFile.h:
+//        extern const OVR_SELECTANY float OVR_Pi = 3.14f;   // Allows you to declare floating point constants in header files.
+//
+// Example usage:
+//    SomeStruct.h:
+//        struct Some {
+//            static const x = 37; // See below for definition, which is required by C++11: 9.4.2p3.
+//        };
+//
+//    SomeStruct.cpp:
+//        OVR_SELECTANY const int Some::x;  // You need to use selectany here for static const member definitions because the VC++ linker requires it. Other linkers do not.
+//
+
+#if !defined(OVR_SELECTANY)
+    #if defined(_MSC_VER)
+        #define OVR_SELECTANY __declspec(selectany)
+    #else
+        #define OVR_SELECTANY // selectany is similar to weak linking but not enough to attempt to use __attribute__((weak)) here.
+    #endif
+#endif
+
 
 
 //-----------------------------------------------------------------------------------
@@ -766,6 +1062,10 @@ inline void* operator new (size_t size, const char* filename, int line)
 #define new new(__FILE__, __LINE__)
 
 #endif // OVR_FIND_NORMAL_ALLOCATIONS
+
+
+#include "OVR_Nullptr.h"
+
 
 
 
