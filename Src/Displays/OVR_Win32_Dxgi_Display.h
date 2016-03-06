@@ -49,8 +49,8 @@ otherwise accompanies this software in either electronic or hard copy form.
 #endif
 
 // {46231713-49FD-4922-84E3-9FF907C06803}
-DEFINE_GUID(GUID_DEVINTERFACE_OVRRIFTMGR, 
-	0x46231713, 0x49fd, 0x4922, 0x84, 0xe3, 0x9f, 0xf9, 0x7, 0xc0, 0x68, 0x3);
+//DEFINE_GUID(GUID_DEVINTERFACE_OVRRIFTMGR, 
+//	0x46231713, 0x49fd, 0x4922, 0x84, 0xe3, 0x9f, 0xf9, 0x7, 0xc0, 0x68, 0x3);
 
 #define QUERYADAPTER_MAGICSIZE		17836
 #define QUERYADAPTER_MAGICHEADER	0x4f565246 // OVRF

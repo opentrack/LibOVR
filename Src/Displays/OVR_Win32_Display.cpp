@@ -33,7 +33,7 @@ limitations under the License.
 #include <tchar.h>
 #include <string.h>
 #include <stdlib.h>
-#include <winioctl.h>
+//#include <winioctl.h>
 //#include <setupapi.h>
 #include <mmsystem.h>
 #include <conio.h>
