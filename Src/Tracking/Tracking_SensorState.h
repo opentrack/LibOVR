@@ -70,7 +70,7 @@ enum StatusBits
 class TrackingState
 {
 public:
-	TrackingState() : StatusFlags(0) { }
+	TrackingState() : StatusFlags(0), LastVisionProcessingTime(0) { }
 
 	// C-interop support
 	TrackingState(const ovrTrackingState& s);
