@@ -24,6 +24,10 @@ set( LIBOVR_INC_DIR
 	"${CMAKE_CURRENT_SOURCE_DIR}/Src"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Include" )
 
+if(NOT MSVC)
+    add_definitions(-Werror=strict-aliasing -fno-strict-aliasing)
+endif()
+
 include_directories( Include Src )
 
 file( GLOB INTERFACE_HEADERS Include/*.h )
