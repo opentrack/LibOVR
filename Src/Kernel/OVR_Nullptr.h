@@ -63,35 +63,14 @@ limitations under the License.
 #if defined(OVR_CPP_NO_NULLPTR)
     namespace std
     {
-        class nullptr_t
-        {
-        public:
-            template <typename T>
-            operator T*() const
-                { return 0; }
-         
-            template <typename C, typename T>
-            operator T C::*() const
-                { return 0; }
 
-            #if OVR_CPP_NO_EXPLICIT_CONVERSION_OPERATORS
-                typedef void* (nullptr_t::*bool_)() const;  // 4.12,p1. We can't portably use operator bool(){ return false; } because bool 
-                operator bool_() const                      // is convertable to int which breaks other required functionality.
-                    { return false; }
-            #else
-                operator bool() const
-                    { return false; }
-            #endif
-
-        private:
-            void operator&() const; // 5.2.10,p9
-        };
-
+        using std::nullptr_t;
         inline nullptr_t nullptr_get()
         {
             nullptr_t n = { };
             return n;
         }
+        using std::nullptr_get;
 
         #if !defined(nullptr)
             #define nullptr nullptr_get()
@@ -99,45 +78,6 @@ limitations under the License.
 
     } // namespace std
 
-
-    // 5.9,p2 p4
-    // 13.6, p13
-    template <typename T>
-    inline bool operator==(T* pT, const std::nullptr_t)
-        { return pT == 0; }
-
-    template <typename T>
-    inline bool operator==(const std::nullptr_t, T* pT)
-        { return pT == 0; }
-
-    template <typename T, typename U>
-    inline bool operator==(const std::nullptr_t, T U::* pU)
-        { return pU == 0; }
-
-    template <typename T, typename U>
-    inline bool operator==(T U::* pTU, const std::nullptr_t)
-        { return pTU == 0; }
-
-    inline bool operator==(const std::nullptr_t, const std::nullptr_t)
-        { return true; }
-
-    inline bool operator!=(const std::nullptr_t, const std::nullptr_t)
-        { return false; }
-
-    inline bool operator<(const std::nullptr_t, const std::nullptr_t)
-        { return false; }
-
-    inline bool operator<=(const std::nullptr_t, const std::nullptr_t)
-        { return true; }
-
-    inline bool operator>(const std::nullptr_t, const std::nullptr_t)
-        { return false; }
-
-    inline bool operator>=(const std::nullptr_t, const std::nullptr_t)
-        { return true; }
-
-    using std::nullptr_t;
-    using std::nullptr_get;
 
 // Some compilers natively support C++11 nullptr but the standard library being used 
 // doesn't declare std::nullptr_t, in which case we provide one ourselves.
