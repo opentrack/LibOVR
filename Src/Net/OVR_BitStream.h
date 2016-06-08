@@ -28,6 +28,7 @@ limitations under the License.
 #ifndef OVR_Bitstream_h
 #define OVR_Bitstream_h
 
+#include <cmath>
 #include <math.h>
 #include "../Kernel/OVR_Types.h"
 #include "../Kernel/OVR_Std.h"
@@ -1552,7 +1553,7 @@ void BitStream::WriteOrthMatrix(
 	if (qx < 0.0) qx=0.0;
 	if (qy < 0.0) qy=0.0;
 	if (qz < 0.0) qz=0.0;
-#ifdef OVR_OS_WIN32
+#if defined(OVR_OS_WIN32) && !defined(__MINGW32__)
 	qx = _copysign( (double) qx, (double) (m21 - m12) );
 	qy = _copysign( (double) qy, (double) (m02 - m20) );
 	qz = _copysign( (double) qz, (double) (m10 - m01) );
