@@ -27,6 +27,10 @@ if(WIN32)
     target_link_libraries(LibOVR winmm setupapi ws2_32 imagehlp wbemuuid)
 endif()
 
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS " -std=c++11 ${CMAKE_CXX_FLAGS} ")
+endif()
+
 if( NOT (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR) )
 	set( LIBOVR_INC_DIR 
 		"${CMAKE_CURRENT_SOURCE_DIR}/Include" 
