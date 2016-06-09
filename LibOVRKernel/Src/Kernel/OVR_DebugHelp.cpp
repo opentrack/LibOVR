@@ -31,6 +31,8 @@ limitations under the License.
 #include <stdlib.h>
 #include <time.h>
 
+#include <algorithm>
+
 #if defined(OVR_OS_WIN32) || defined(OVR_OS_WIN64)
     #pragma warning(push, 0)
     #include "OVR_Win32_IncludeWindows.h"
