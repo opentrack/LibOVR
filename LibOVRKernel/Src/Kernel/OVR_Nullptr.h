@@ -41,7 +41,7 @@ limitations under the License.
     #if defined(OVR_STDLIB_LIBCPP)
         #define OVR_HAVE_std_nullptr_t 1
     #elif defined(OVR_STDLIB_LIBSTDCPP)
-        #if (__GLIBCXX__ >= 20110325) && (__GLIBCXX__ != 20110428) && (__GLIBCXX__ != 20120702)
+        #if 1
             #define OVR_HAVE_std_nullptr_t 1
         #endif
     #elif defined(_MSC_VER) && (_MSC_VER >= 1600) // VS2010+

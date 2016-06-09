@@ -47,7 +47,7 @@ limitations under the License.
     // OVRTypeof
     // Acts the same as the C++11 decltype expression, though with reduced requirements.
     #if !defined(OVRTypeof)
-        #if defined(_MSC_VER)
+        #if defined(_MSC_VER) || 1
             #define OVRTypeof(x) decltype(x)    // VS2010+ unilaterally supports decltype
         #else
             #define OVRTypeof(x) __typeof__(x)  // Other compilers support decltype, but usually not unless C++11 support is present and explicitly enabled.
