@@ -26,9 +26,10 @@ limitations under the License.
 
 #include "Util_D3D11_Blitter.h"
 
-#ifdef OVR_OS_MS
+#if defined(OVR_OS_MS) && !defined(__MINGW32__)
 
 #include "Util/Util_Direct3D.h"
+
 #include "Shaders/Blt_vs.h"
 #include "Shaders/Blt_ps.h"
 

@@ -29,7 +29,7 @@ limitations under the License.
 
 #include "Kernel/OVR_RefCount.h"
 
-#ifdef OVR_OS_MS
+#if defined(OVR_OS_MS) && !defined(__MINGW32__)
 
 #include <d3d11_1.h>
 
