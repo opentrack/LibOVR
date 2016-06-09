@@ -290,7 +290,10 @@ static size_t SprintfThreadSysId(char* threadSysIdStr, size_t threadSysIdStrCapa
 
 void GetThreadStackBounds(void*& pStackBase, void*& pStackLimit, ThreadHandle threadHandle)
 {
-    #if defined(OVR_OS_WIN64) || defined(OVR_OS_WIN32)
+    #if defined(__MINGW32__)
+        pStackBase = nullptr;
+        pStackLimit = nullptr;
+    #elif (defined(OVR_OS_WIN64) || defined(OVR_OS_WIN32))
         ThreadSysId threadSysIdCurrent = (ThreadSysId)GetCurrentThreadId();
         ThreadSysId threadSysId;
         NT_TIB*     pTIB = nullptr;
@@ -1395,7 +1398,7 @@ size_t SymbolLookup::GetBacktrace(void* addressArray[], size_t addressArrayCapac
 
         return frameIndex;
 
-    #elif defined(OVR_OS_WIN32)
+    #elif defined(OVR_OS_WIN32) && !defined(__MINGW32__)
         OVR_UNUSED(threadSysIdHelp);
 
         OVR::Lock::Locker autoLock(GetSymbolLookupLockPtr());
