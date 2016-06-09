@@ -39,7 +39,9 @@ limitations under the License.
     #include "Kernel/OVR_Win32_IncludeWindows.h"
     #include <Shlobj.h>
     #include <Shlwapi.h>
+#ifndef __MINGW32__
     #include <wtsapi32.h>
+#endif
     #include <Psapi.h>
 
     #pragma comment(lib, "Shlwapi") // PathFileExistsW
@@ -56,6 +58,116 @@ limitations under the License.
     #endif
 #endif
 
+#ifdef __MINGW32__
+
+// from MSDN
+// mingw lacks some of these so don't include wtsapi to avoid redefinition
+
+#define WTS_SESSIONSTATE_UNKNOWN 0xFFFFFFFF
+#define WTS_SESSIONSTATE_LOCK 0x0
+#define WTS_SESSIONSTATE_UNLOCK 0x1
+
+#define WINSTATIONNAME_LENGTH     32
+#define USERNAME_LENGTH           20
+#define DOMAIN_LENGTH             17
+
+typedef enum _WTS_CONNECTSTATE_CLASS { 
+  WTSActive,
+  WTSConnected,
+  WTSConnectQuery,
+  WTSShadow,
+  WTSDisconnected,
+  WTSIdle,
+  WTSListen,
+  WTSReset,
+  WTSDown,
+  WTSInit
+} WTS_CONNECTSTATE_CLASS;
+
+typedef struct _WTSINFOEX_LEVEL1 {
+  ULONG                  SessionId;
+  WTS_CONNECTSTATE_CLASS SessionState;
+  LONG                   SessionFlags;
+  TCHAR                  WinStationName[WINSTATIONNAME_LENGTH + 1];
+  TCHAR                  UserName[USERNAME_LENGTH + 1];
+  TCHAR                  DomainName[DOMAIN_LENGTH + 1];
+  LARGE_INTEGER          LogonTime;
+  LARGE_INTEGER          ConnectTime;
+  LARGE_INTEGER          DisconnectTime;
+  LARGE_INTEGER          LastInputTime;
+  LARGE_INTEGER          CurrentTime;
+  DWORD                  IncomingBytes;
+  DWORD                  OutgoingBytes;
+  DWORD                  IncomingFrames;
+  DWORD                  OutgoingFrames;
+  DWORD                  IncomingCompressedBytes;
+  DWORD                  OutgoingCompressedBytes;
+} WTSINFOEX_LEVEL1, *PWTSINFOEX_LEVEL1;
+
+typedef union _WTSINFOEX_LEVEL {
+  WTSINFOEX_LEVEL1 WTSInfoExLevel1;
+} WTSINFOEX_LEVEL, *PWTSINFOEX_LEVEL;
+
+typedef struct _WTSINFOEX {
+      DWORD           Level;
+      WTSINFOEX_LEVEL Data;
+} WTSINFOEX, *PWTSINFOEX;
+
+typedef WTSINFOEX WTSINFOEXW;
+typedef WTSINFOEX_LEVEL1 WTSINFOEX_LEVEL1_W;
+
+typedef enum _WTS_INFO_CLASS {
+  WTSInitialProgram         = 0,
+  WTSApplicationName        = 1,
+  WTSWorkingDirectory       = 2,
+  WTSOEMId                  = 3,
+  WTSSessionId              = 4,
+  WTSUserName               = 5,
+  WTSWinStationName         = 6,
+  WTSDomainName             = 7,
+  WTSConnectState           = 8,
+  WTSClientBuildNumber      = 9,
+  WTSClientName             = 10,
+  WTSClientDirectory        = 11,
+  WTSClientProductId        = 12,
+  WTSClientHardwareId       = 13,
+  WTSClientAddress          = 14,
+  WTSClientDisplay          = 15,
+  WTSClientProtocolType     = 16,
+  WTSIdleTime               = 17,
+  WTSLogonTime              = 18,
+  WTSIncomingBytes          = 19,
+  WTSOutgoingBytes          = 20,
+  WTSIncomingFrames         = 21,
+  WTSOutgoingFrames         = 22,
+  WTSClientInfo             = 23,
+  WTSSessionInfo            = 24,
+  WTSSessionInfoEx          = 25,
+  WTSConfigInfo             = 26,
+  WTSValidationInfo         = 27,
+  WTSSessionAddressV4       = 28,
+  WTSIsRemoteSession        = 29
+} WTS_INFO_CLASS;
+
+BOOL WTSQuerySessionInformation_mingwin(
+  _In_  HANDLE         hServer,
+  _In_  DWORD          SessionId,
+  _In_  WTS_INFO_CLASS WTSInfoClass,
+  _Out_ LPTSTR         *ppBuffer,
+  _Out_ DWORD          *pBytesReturned
+);
+
+#define WTSQuerySessionInformation WTSQuerySessionInformation_mingwin
+#define WTSQuerySessionInformationW WTSQuerySessionInformation_mingwin
+#define WTS_CURRENT_SERVER_HANDLE 0
+#define WTS_CURRENT_SESSION -1
+#define WTSClientProtocolType 16
+
+void WTSFreeMemory(
+  _In_ PVOID pMemory
+);
+
+#endif
 
 namespace OVR { namespace Util {
 
@@ -259,17 +371,32 @@ void GetGraphicsCardList( Array< String > &gpus)
     }
 }
 
+// from GNU CC sources
+
+#define __cpuid(level, a, b, c, d)                      \
+  __asm__ ("cpuid\n\t"                                  \
+           : "=a" (a), "=b" (b), "=c" (c), "=d" (d)     \
+           : "0" (level))
+
 String GetProcessorInfo()
 {
     char brand[0x40] = {};
     int cpui[4] = { -1 };
 
+#ifdef __GNUC__
+    __cpuid(0x80000002, cpui[0], cpui[1], cpui[2], cpui[3]);
+#else
     __cpuidex(cpui, 0x80000002, 0);
+#endif
 
     //unsigned int blocks = cpui[0];
     for (int i = 0; i <= 2; ++i)
     {
+#ifdef __GNUC__
+        __cpuid(0x80000002 + i, cpui[0], cpui[1], cpui[2], cpui[3]);
+#else
         __cpuidex(cpui, 0x80000002 + i, 0);
+#endif
         *reinterpret_cast<int*>(brand + i * 16) = cpui[0];
         *reinterpret_cast<int*>(brand + 4 + i * 16) = cpui[1];
         *reinterpret_cast<int*>(brand + 8 + i * 16) = cpui[2];
@@ -897,11 +1024,17 @@ bool GetRFL2Path(std::wstring* outPath)
 
 #ifdef OVR_OS_MS
 
+#ifndef __GNUC__
 static INIT_ONCE OSVersionInitOnce = INIT_ONCE_STATIC_INIT;
+#endif
 static uint32_t OSVersion;
 static uint32_t OSBuildNumber;
 
+#ifdef __GNUC__
+__attribute__((constructor)) void VersionCheckInitOnceCallback(PINIT_ONCE, PVOID, PVOID*)
+#else
 BOOL CALLBACK VersionCheckInitOnceCallback(PINIT_ONCE, PVOID, PVOID*)
+#endif
 {
     typedef NTSTATUS(WINAPI * pfnRtlGetVersion)(PRTL_OSVERSIONINFOEXW lpVersionInformation);
 
@@ -939,7 +1072,13 @@ BOOL CALLBACK VersionCheckInitOnceCallback(PINIT_ONCE, PVOID, PVOID*)
         LogError("[VersionCheckInitOnceCallback] Failed to obtain OS version information. 0x%08x\n", status);
     }
 
+#ifndef __GNUC__
     return (status == 0);
+#else
+    OVR_ASSERT(false);
+    if (status != 0)
+        *(volatile int*)0 = 0;
+#endif
 }
 
 #endif // OVR_OS_MS
@@ -947,11 +1086,13 @@ BOOL CALLBACK VersionCheckInitOnceCallback(PINIT_ONCE, PVOID, PVOID*)
 bool IsAtLeastWindowsVersion(WindowsVersion version)
 {
 #ifdef OVR_OS_MS
+#   ifndef __GNUC__
     if (!InitOnceExecuteOnce(&OSVersionInitOnce, VersionCheckInitOnceCallback, nullptr, nullptr))
     {
         OVR_ASSERT(false);
         return false;
     }
+#endif
 
     switch (version)
     {
@@ -983,11 +1124,14 @@ bool IsAtLeastWindowsVersion(WindowsVersion version)
 bool IsAtMostWindowsVersion(WindowsVersion version)
 {
 #ifdef OVR_OS_MS
+
+#   ifndef __GNUC__
     if (!InitOnceExecuteOnce(&OSVersionInitOnce, VersionCheckInitOnceCallback, nullptr, nullptr))
     {
         OVR_ASSERT(false);
         return false;
     }
+#   endif
 
     switch (version)
     {
