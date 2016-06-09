@@ -98,20 +98,30 @@
 #if !defined(OVR_PUBLIC_FUNCTION)
     #if defined(OVR_DLL_BUILD)
         #if defined(_WIN32)
-            #define OVR_PUBLIC_FUNCTION(rval) OVR_EXTERN_C __declspec(dllexport) rval OVR_CDECL
-            #define OVR_PUBLIC_CLASS          __declspec(dllexport)
-            #define OVR_PRIVATE_FUNCTION(rval) rval OVR_CDECL
-            #define OVR_PRIVATE_CLASS
+            #if defined(__GNUC__)
+                #define OVR_PUBLIC_FUNCTION(rval) OVR_EXTERN_C __declspec(dllexport) __attribute__((visibility("default"))) rval OVR_CDECL /* Requires GCC 4.0+ */
+                #define OVR_PUBLIC_CLASS           __declspec(dllexport) __attribute__((visibility("default"))) /* Requires GCC 4.0+ */
+            #else
+                #define OVR_PUBLIC_FUNCTION(rval) OVR_EXTERN_C __declspec(dllexport) rval OVR_CDECL
+                #define OVR_PUBLIC_CLASS          __declspec(dllexport)
+                #define OVR_PRIVATE_FUNCTION(rval) rval OVR_CDECL
+                #define OVR_PRIVATE_CLASS
+            #endif
         #else
             #define OVR_PUBLIC_FUNCTION(rval) OVR_EXTERN_C __attribute__((visibility("default"))) rval OVR_CDECL /* Requires GCC 4.0+ */
             #define OVR_PUBLIC_CLASS          __attribute__((visibility("default"))) /* Requires GCC 4.0+ */
-            #define OVR_PRIVATE_FUNCTION(rval) __attribute__((visibility("hidden"))) rval OVR_CDECL
-            #define OVR_PRIVATE_CLASS         __attribute__((visibility("hidden")))
+            #define OVR_PRIVATE_FUNCTION(rval)  __attribute__((visibility("hidden"))) rval OVR_CDECL
+            #define OVR_PRIVATE_CLASS          __attribute__((visibility("hidden")))
         #endif
     #elif defined(OVR_DLL_IMPORT)
         #if defined(_WIN32)
-            #define OVR_PUBLIC_FUNCTION(rval) OVR_EXTERN_C __declspec(dllimport) rval OVR_CDECL
-            #define OVR_PUBLIC_CLASS          __declspec(dllimport)
+            #if defined(__GNUC__)
+                #define OVR_PUBLIC_FUNCTION(rval) __declspec(dllimport) __attribute__((visibility("default"))) OVR_EXTERN_C rval OVR_CDECL
+                #define OVR_PUBLIC_CLASS          __declspec(dllimport) __attribute__((visibility("default")))
+            #else
+                #define OVR_PUBLIC_FUNCTION(rval) OVR_EXTERN_C __declspec(dllimport) rval OVR_CDECL
+                #define OVR_PUBLIC_CLASS          __declspec(dllimport)
+            #endif
         #else
             #define OVR_PUBLIC_FUNCTION(rval) OVR_EXTERN_C rval OVR_CDECL
             #define OVR_PUBLIC_CLASS
