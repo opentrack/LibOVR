@@ -152,15 +152,6 @@ public:
         // Do not close handle
         hAttachedHandle = Traits::InvalidValue();
     }
-    bool Copy()
-    {
-        Close();
-        if(DuplicateHandle(GetCurrentProcess(), cpuEvent, GetCurrentProcess()
-                           serverProcess.Get(), &hAttachedHandle, 0, FALSE, DUPLICATE_SAME_ACCESS))
-            return true;
-        hAttachedHandle = Traits::InvalidValue();
-        return false;
-    }
     bool Close()
     {
         bool success = true;
