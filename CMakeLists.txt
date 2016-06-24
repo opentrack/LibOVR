@@ -25,7 +25,8 @@ set( LIBOVR_INC_DIR
 	"${CMAKE_CURRENT_SOURCE_DIR}/Include" )
 
 if(NOT MSVC)
-    add_definitions(-Werror=strict-aliasing -fno-strict-aliasing)
+    add_definitions(-fno-strict-aliasing)
+    add_definitions(-fno-lto -fno-ipa-pta -O2)
 endif()
 
 include_directories( Include Src )
