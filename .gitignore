@@ -5,3 +5,7 @@ cmake_install.cmake
 install_manifest.txt
 /build*/
 /libLibOVR.a
+/.ninja_deps
+/.ninja_log
+/build.ninja
+/rules.ninja
