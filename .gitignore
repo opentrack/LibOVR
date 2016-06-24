@@ -10,3 +10,7 @@ install_manifest.txt
 *.sdf
 *.sln
 *.opensdf
+/.ninja_deps
+/.ninja_log
+/build.ninja
+/rules.ninja
