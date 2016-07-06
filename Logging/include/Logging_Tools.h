@@ -58,13 +58,13 @@ limitations under the License.
         //#define WIN32_LEAN_AND_MEAN
     #endif
 
-    // Prevents <Windows.h> from #including <Winsock.h>, as we use <Winsock2.h> instead.
+    // Prevents <windows.h> from #including <Winsock.h>, as we use <Winsock2.h> instead.
     #ifndef _WINSOCKAPI_
         #define DID_DEFINE_WINSOCKAPI
         #define _WINSOCKAPI_
     #endif
 
-    // Prevents <Windows.h> from defining min() and max() macro symbols.
+    // Prevents <windows.h> from defining min() and max() macro symbols.
     #ifndef NOMINMAX
         #define NOMINMAX
     #endif

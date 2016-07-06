@@ -38,7 +38,7 @@ limitations under the License.
     #if defined(_MSC_VER)
         #pragma warning(push, 0)
     #endif
-    #include <Windows.h>
+    #include <windows.h>
     #if defined(_MSC_VER)
         #pragma warning(pop)
     #endif
@@ -442,8 +442,8 @@ static ovrBool OVR_GetCurrentModuleDirectory(FilePathCharType* directoryPath, si
     #pragma warning(disable: 4201)
 #endif
 
-#include <Softpub.h>
-#include <Wincrypt.h>
+#include <softpub.h>
+#include <wincrypt.h>
 
 #ifdef _MSC_VER
     #pragma warning(pop)

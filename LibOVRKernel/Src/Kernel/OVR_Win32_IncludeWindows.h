@@ -1,7 +1,7 @@
 /************************************************************************************
 
 Filename    :   OVR_Win32_IncludeWindows.h
-Content     :   Small helper header to include Windows.h properly
+Content     :   Small helper header to include windows.h properly
 Created     :   Oct 16, 2014
 Authors     :   Chris Taylor, Scott Bassett
 
@@ -37,13 +37,13 @@ limitations under the License.
 // irritations throughout our code-base.
 //#define WIN32_LEAN_AND_MEAN
 
-// Prevents <Windows.h> from #including <Winsock.h>, as we use <Winsock2.h> instead.
+// Prevents <windows.h> from #including <Winsock.h>, as we use <Winsock2.h> instead.
 #ifndef _WINSOCKAPI_
 #define DID_DEFINE_WINSOCKAPI
 #define _WINSOCKAPI_
 #endif
 
-// Prevents <Windows.h> from defining min() and max() macro symbols.
+// Prevents <windows.h> from defining min() and max() macro symbols.
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -54,7 +54,7 @@ limitations under the License.
 #endif
 
 OVR_DISABLE_ALL_MSVC_WARNINGS()
-#include <Windows.h>
+#include <windows.h>
 OVR_RESTORE_ALL_MSVC_WARNINGS()
 
 #ifdef DID_DEFINE_WINSOCKAPI

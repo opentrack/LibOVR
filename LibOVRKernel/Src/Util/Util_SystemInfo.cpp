@@ -37,12 +37,12 @@ limitations under the License.
 // Includes used for GetBaseOVRPath()
 #ifdef OVR_OS_WIN32
     #include "Kernel/OVR_Win32_IncludeWindows.h"
-    #include <Shlobj.h>
-    #include <Shlwapi.h>
+    #include <shlobj.h>
+    #include <shlwapi.h>
 #ifndef __MINGW32__
     #include <wtsapi32.h>
 #endif
-    #include <Psapi.h>
+    #include <psapi.h>
 
     #pragma comment(lib, "Shlwapi") // PathFileExistsW
     #pragma comment(lib, "Wtsapi32.lib") // WTSQuerySessionInformation

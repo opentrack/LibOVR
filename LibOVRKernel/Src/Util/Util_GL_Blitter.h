@@ -32,8 +32,8 @@ limitations under the License.
 #include "GL/CAPI_GLE.h"
 
 #if defined(OVR_OS_WIN32)
-#include <Windows.h>
-#include <gl/GL.h>
+#include <windows.h>
+#include <GL/gl.h>
 #elif defined(__APPLE__)
 #include <OpenGL/gl.h>
 #else

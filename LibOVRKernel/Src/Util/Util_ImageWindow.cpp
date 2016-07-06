@@ -43,7 +43,7 @@ OVR_DISABLE_ALL_MSVC_WARNINGS()
 
 #if defined(OVR_OS_WIN32)
     #include "Kernel/OVR_Win32_IncludeWindows.h"
-    #include "DWrite.h"
+    #include "dwrite.h"
 #endif
 
 OVR_RESTORE_ALL_MSVC_WARNINGS()

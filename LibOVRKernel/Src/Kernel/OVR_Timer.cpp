@@ -29,7 +29,7 @@ limitations under the License.
 
 #if defined(OVR_OS_MS) && !defined(OVR_OS_MS_MOBILE)
 #include "OVR_Win32_IncludeWindows.h"
-#include <MMSystem.h>
+#include <mmsystem.h>
 #pragma comment(lib, "winmm.lib")
 #elif defined(OVR_OS_ANDROID)
 #include <time.h>

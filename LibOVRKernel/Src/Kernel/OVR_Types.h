@@ -32,16 +32,16 @@ limitations under the License.
 
 #if defined(_WIN32) && defined(OVR_KILL_WINDOWS_A_FUNCTIONS)
     #define NOMINMAX
-    #include <Windows.h>
+    #include <windows.h>
     #include <commctrl.h>
-    #include <DbgHelp.h>
-    #include <ShlObj.h>
-    #include <Shlwapi.h>
-    #include <Sddl.h>
+    #include <dbghelp.h>
+    #include <shlobj.h>
+    #include <shlwapi.h>
+    #include <sddl.h>
     #include <WtsApi32.h>
     #include <SetupAPI.h>
     #include <Cfgmgr32.h>
-    #include <Psapi.h>
+    #include <psapi.h>
     #include "WindowsAFunctions.h"
 #endif
 

@@ -34,7 +34,7 @@ limitations under the License.
 // How to use this functionality
 //
 // - You #include this header instead of gl.h, glext.h, wglext.h (Windows), gl3.h (Apple), gl3ext.h (Apple), glx.h (Unix), and glxext.h (Unix).
-//   Currently you still would #include <Windows.h> for the base wgl functions on Windows and OpenGL.h or NSOpenGL for the 
+//   Currently you still would #include <windows.h> for the base wgl functions on Windows and OpenGL.h or NSOpenGL for the 
 //   base Apple cgl functions.
 // 
 // - You call OpenGL functions just like you would if you were directly using OpenGL 

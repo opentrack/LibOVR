@@ -32,7 +32,7 @@ limitations under the License.
 #include "Kernel/OVR_String.h"
 
 // Direct3D 11
-#include <D3D11Shader.h>
+#include <d3d11shader.h>
 #include <d3dcompiler.h>
 
 #if _MSC_VER >= 1800

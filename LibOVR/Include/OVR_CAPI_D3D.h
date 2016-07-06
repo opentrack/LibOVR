@@ -12,7 +12,7 @@
 
 
 #if defined (_WIN32)
-#include <Unknwn.h>
+#include <unknwn.h>
 
 //-----------------------------------------------------------------------------------
 // ***** Direct3D Specific

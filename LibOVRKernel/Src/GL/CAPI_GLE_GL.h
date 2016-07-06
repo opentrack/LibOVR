@@ -4818,7 +4818,7 @@ extern "C" {
 #endif // GLE_GLX_ENABLED
 
 
-// Undo some defines, because the user may include <Windows.h> after including this header.
+// Undo some defines, because the user may include <windows.h> after including this header.
 #if defined(GLE_WINGDIAPI_DEFINED)
     #undef WINGDIAPI
 #endif

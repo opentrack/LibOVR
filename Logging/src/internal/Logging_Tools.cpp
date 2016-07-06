@@ -36,7 +36,7 @@ limitations under the License.
 #include <time.h>
 #include <assert.h>
 #if defined(_WIN32)
-    #include <Windows.h>
+    #include <windows.h>
 #endif
 
 namespace ovrlog {
