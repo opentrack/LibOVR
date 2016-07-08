@@ -1,16 +1,1 @@
-CMakeCache.txt
-CMakeFiles
-Makefile
-cmake_install.cmake
-install_manifest.txt
-*.a
-# visual studio
-*.vcxproj
-*.filters
-*.sdf
-*.sln
-*.opensdf
-/.ninja_deps
-/.ninja_log
-/build.ninja
-/rules.ninja
+/build*/
