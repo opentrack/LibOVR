@@ -2,13 +2,17 @@ cmake_minimum_required(VERSION 2.6)
 project( LibOVR )
 
 add_definitions(-DUNICODE -D_UNICODE -DMINGW_HAS_SECURE_API)
-set( LIBOVR_INC_DIR 
-	"${CMAKE_CURRENT_SOURCE_DIR}/Src"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Include" )
+
+file(GLOB_RECURSE to-install RELATIVE ${CMAKE_SOURCE_DIR} Src/*.h Include/*.h)
+
+foreach(file ${to-install})
+    get_filename_component(dir "${file}" DIRECTORY)
+    set(dir_ "${CMAKE_BINARY_DIR}/${dir}")
+    file(MAKE_DIRECTORY "${dir_}")
+    file(COPY ${file} DESTINATION "${dir_}")
+endforeach()
 
 include_directories( Include Src )
-
-file( GLOB INTERFACE_HEADERS Include/*.h )
 
 file( GLOB LIBOVR_FILES
 	"Src/Kernel/*.cpp"
@@ -29,11 +33,4 @@ endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS " -std=c++11 ${CMAKE_CXX_FLAGS} ")
-endif()
-
-if( NOT (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR) )
-	set( LIBOVR_INC_DIR 
-		"${CMAKE_CURRENT_SOURCE_DIR}/Include" 
-		"${CMAKE_CURRENT_SOURCE_DIR}/Src"
-		PARENT_SCOPE )
 endif()
