@@ -29,7 +29,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 #define _WIN32_DCOM
 #include <comdef.h>
-#include <Wbemidl.h>
+#include <wbemidl.h>
 # pragma comment(lib, "wbemuuid.lib")
 #include "DXGI.h"
 

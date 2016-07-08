@@ -25,6 +25,9 @@ limitations under the License.
 
 ************************************************************************************/
 
+#undef NDEBUG
+#include <cassert>
+
 #include "OVR_System.h"
 #include "OVR_Threads.h"
 #include "OVR_Timer.h"
@@ -102,7 +105,7 @@ static int System_Init_Count = 0;
     // This allows us to throw OVR::bad_alloc instead of std::bad_alloc, which provides less information.
     void OVRNewFailureHandler()
     {
-        throw OVR::bad_alloc();
+        assert(!"bad alloc");
     }
 #endif
 

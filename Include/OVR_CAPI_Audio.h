@@ -9,7 +9,7 @@
 #define OVR_CAPI_Audio_h
 
 #include "OVR_CAPI.h"
-#include <Windows.h>
+#include <windows.h>
 
 #define OVR_AUDIO_MAX_DEVICE_STR_SIZE 128
 

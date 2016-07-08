@@ -33,17 +33,17 @@ limitations under the License.
 #if defined(OVR_OS_WIN32) || defined(OVR_OS_WIN64)
     #pragma warning(push, 0)
     #include "OVR_Win32_IncludeWindows.h"
-    #include <ShlObj.h>
-    #include <WinNT.h>
-    #include <DbgHelp.h>
-    #include <WinVer.h>
+    #include <shlobj.h>
+    #include <winnt.h>
+    #include <dbghelp.h>
+    #include <winver.h>
     #include <share.h>
-    #include <Psapi.h>
-    #include <TlHelp32.h>
+    #include <psapi.h>
+    #include <tlhelp32.h>
     #include <comutil.h>
-    #include <Wbemcli.h>
-    #include <Wbemidl.h>
-    #include <ObjBase.h>
+    #include <wbemcli.h>
+    #include <wbemidl.h>
+    #include <objbase.h>
     #include <process.h>
     #pragma warning(pop)
 

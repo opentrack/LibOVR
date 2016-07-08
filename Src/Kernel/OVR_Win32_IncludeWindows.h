@@ -52,7 +52,7 @@ limitations under the License.
 #define _WIN32_WINNT 0x0601 /* Windows 7+ */
 #endif
 
-#include <Windows.h>
+#include <windows.h>
 
 namespace OVR {
 

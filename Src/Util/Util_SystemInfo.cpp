@@ -37,8 +37,8 @@ limitations under the License.
 // Includes used for GetBaseOVRPath()
 #ifdef OVR_OS_WIN32
     #include "Kernel/OVR_Win32_IncludeWindows.h"
-    #include <Shlobj.h>
-    #include <Shlwapi.h>
+    #include <shlobj.h>
+    #include <shlwapi.h>
 
     #pragma comment(lib, "Shlwapi")
 #elif defined(OVR_OS_MS) // Other Microsoft OSs
