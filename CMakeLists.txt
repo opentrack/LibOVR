@@ -2,11 +2,8 @@ cmake_minimum_required(VERSION 2.6)
 project( LibOVR )
 
 add_definitions(-DUNICODE -D_UNICODE -DMINGW_HAS_SECURE_API)
-set( LIBOVR_INC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Src" "${CMAKE_CURRENT_SOURCE_DIR}/Include" )
 
-include_directories( Include Src ${CMAKE_SOURCE_DIR} )
-
-file( GLOB INTERFACE_HEADERS Include/*.h )
+include_directories( "${CMAKE_BINARY_DIR}/Include" "${CMAKE_BINARY_DIR}/Src" "${CMAKE_BINARY_DIR}")
 
 file( GLOB LIBOVR_FILES
 ./Src/GL/CAPI_GLE.cpp
@@ -63,6 +60,11 @@ if(WIN32)
     )
 endif()
 
-if(NOT (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR))
-        set(LIBOVR_INC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Include" "${CMAKE_CURRENT_SOURCE_DIR}/Src" PARENT_SCOPE)
-endif()
+file(GLOB_RECURSE to-install RELATIVE ${CMAKE_SOURCE_DIR} Src/*.h Include/*.h Shaders/*.h)
+
+foreach(file ${to-install})
+    get_filename_component(dir "${file}" DIRECTORY)
+    set(dir_ "${CMAKE_BINARY_DIR}/${dir}")
+    file(MAKE_DIRECTORY "${dir_}")
+    file(COPY ${file} DESTINATION "${dir_}")
+endforeach()
