@@ -62,7 +62,7 @@ static const char* UMFilter = "OVRDisplay32.dll";
 #endif
 static const char* OptimusDrivers = "nvumdshimx.dll nvumdshim.dll";
 
-typedef enum OVRTargetAPI
+enum OVRTargetAPI
 {
 	DirectX,
 	OpenGL
@@ -712,13 +712,17 @@ void checkUMDriverOverrides(void* context)
 		for( int i = 0; i < ShimCountMax; ++i )
 		{
             HINSTANCE hInst = NULL;
+#if 0
 			try
 			{
+#endif
 				hInst = LoadLibraryA(dllList[i]);
+#if 0
 			}
 			catch(...)
 			{
 			}
+#endif
 
             oldLoaderInstances[i] = hInst;
 
