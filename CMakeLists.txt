@@ -2,11 +2,8 @@ cmake_minimum_required(VERSION 2.6)
 project( LibOVR )
 
 add_definitions(-DUNICODE -D_UNICODE -DMINGW_HAS_SECURE_API -DNOMINMAX)
-set(LIBOVR_INC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Src" "${CMAKE_CURRENT_SOURCE_DIR}/Include" )
 
 include_directories( LibOVR/Include LibOVR/Src ${CMAKE_SOURCE_DIR} )
-
-file(GLOB INTERFACE_HEADERS Include/*.h )
 
 file(GLOB LIBOVR_FILES
     LibOVR/Include/*.h
