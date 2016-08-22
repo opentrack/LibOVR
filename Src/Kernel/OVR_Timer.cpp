@@ -17,6 +17,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 #if defined (OVR_OS_WIN32)
 #include <windows.h>
+#include <timeapi.h>
 
 #else
 #include <sys/time.h>

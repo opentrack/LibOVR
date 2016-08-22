@@ -85,3 +85,4 @@ file(GLOB LIBOVR_FILES
  )
 
 add_library(LibOVR STATIC ${LIBOVR_FILES} ${PLATFORM_FILES})
+target_link_libraries(LibOVR setupapi winmm)

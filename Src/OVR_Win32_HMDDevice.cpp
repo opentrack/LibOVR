@@ -20,9 +20,11 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 #include <tchar.h>
 
+#ifdef __MINGW32__
 #include <sec_api/wchar_s.h>
 #include <sec_api/tchar_s.h>
 #include <sec_api/string_s.h>
+#endif
 
 namespace OVR { namespace Win32 {
 
