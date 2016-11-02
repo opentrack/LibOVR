@@ -40,11 +40,5 @@ if(WIN32)
     )
 endif()
 
-file(GLOB_RECURSE to-install RELATIVE ${CMAKE_SOURCE_DIR} LibOVR/*.h LibOVRKernel/*.h Logging/*.h)
-
-foreach(file ${to-install})
-    get_filename_component(dir "${file}" DIRECTORY)
-    set(dir_ "${CMAKE_BINARY_DIR}/${dir}")
-    file(MAKE_DIRECTORY "${dir_}")
-    file(COPY ${file} DESTINATION "${dir_}")
-endforeach()
+install(DIRECTORY "LibOVR/Include" DESTINATION .)
+install(TARGETS LibOVR DESTINATION .)
