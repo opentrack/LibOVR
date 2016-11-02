@@ -1,3 +1,4 @@
+#if 0
 /************************************************************************************
 
 Filename    :   Util_D3D11_Blitter.cpp
@@ -228,3 +229,4 @@ bool Blitter::Blt(ID3D11RenderTargetView* dest, ID3D11ShaderResourceView* source
 }} // namespace OVR::D3DUtil
 
 #endif // OVR_OS_MS
+#endif
