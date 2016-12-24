@@ -449,6 +449,7 @@ static ovrBool OVR_GetCurrentModuleDirectory(FilePathCharType* directoryPath, si
     #pragma warning(pop)
 #endif
 
+#if 0
 // Expected certificates:
 #define ExpectedNumCertificates 3
 typedef struct CertificateEntry_t {
@@ -487,7 +488,9 @@ PtrCertGetNameStringW m_PtrCertGetNameStringW = 0;
 PtrWinVerifyTrust m_PtrWinVerifyTrust = 0;
 PtrWTHelperProvDataFromStateData m_PtrWTHelperProvDataFromStateData = 0;
 PtrWTHelperGetProvSignerFromChain m_PtrWTHelperGetProvSignerFromChain = 0;
+#endif
 
+#if 0
 typedef enum ValidateCertificateContentsResult_
 {
     VCCRSuccess          =  0,
@@ -550,6 +553,8 @@ static ValidateCertificateContentsResult ValidateCertificateContents(Certificate
         u.p2 = procaddr; \
         fptr = u.p1; }
 
+#endif
+#if 0
 static HANDLE OVR_Win32_SignCheck(FilePathCharType* fullPath)
 {
     HANDLE hFile = INVALID_HANDLE_VALUE;
@@ -647,6 +652,7 @@ static HANDLE OVR_Win32_SignCheck(FilePathCharType* fullPath)
     return hFile;
 }
 
+#endif
 #endif // #if defined(_WIN32)
 
 static ModuleHandleType OVR_OpenLibrary(const FilePathCharType* libraryPath)
@@ -654,7 +660,7 @@ static ModuleHandleType OVR_OpenLibrary(const FilePathCharType* libraryPath)
     #if defined(_WIN32)
         DWORD fullPathNameLen = 0;
         FilePathCharType fullPath[MAX_PATH] = { 0 };
-        HANDLE hFilePinned = INVALID_HANDLE_VALUE;
+        //HANDLE hFilePinned = INVALID_HANDLE_VALUE;
         ModuleHandleType hModule = 0;
         fullPathNameLen = GetFullPathNameW(libraryPath, MAX_PATH, fullPath, 0);
         if (fullPathNameLen <= 0 || fullPathNameLen >= MAX_PATH)
@@ -663,18 +669,22 @@ static ModuleHandleType OVR_OpenLibrary(const FilePathCharType* libraryPath)
         }
         fullPath[MAX_PATH - 1] = 0;
 
+#if 0
         hFilePinned = OVR_Win32_SignCheck(fullPath);
         if (hFilePinned == INVALID_HANDLE_VALUE)
         {
             return 0;
         }
+#endif
 
         hModule = LoadLibraryW(fullPath);
 
+#if 0
         if (hFilePinned != INVALID_HANDLE_VALUE)
         {
             CloseHandle(hFilePinned);
         }
+#endif
 
         return hModule;
     #else
