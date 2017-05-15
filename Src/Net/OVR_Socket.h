@@ -49,6 +49,11 @@ limitations under the License.
 #endif
 #endif
 
+#ifdef __MINGW32__
+#   undef gai_strerror
+#   define gai_strerror gai_strerrorA
+#endif
+
 namespace OVR { namespace Net {
 
 class SockAddr;

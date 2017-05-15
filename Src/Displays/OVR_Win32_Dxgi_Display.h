@@ -13,7 +13,7 @@ Use of this software is subject to the terms of the Oculus LLC license
 agreement provided at the time of installation or download, or which
 otherwise accompanies this software in either electronic or hard copy form.
  
-/************************************************************************************/
+************************************************************************************/
 
 #ifndef OVR_dxgi_ovr_filter_h
 #define OVR_dxgi_ovr_filter_h
