@@ -82,7 +82,7 @@ limitations under the License.
     void* OVR::GLEGetProcAddress(const char* name)
     {
         #if defined(_WIN32)
-            return wglGetProcAddress(name);
+            return reinterpret_cast<void*>(wglGetProcAddress(name));
         
         #elif defined(__APPLE__)
             // Requires the OS 10.3 SDK or later.
