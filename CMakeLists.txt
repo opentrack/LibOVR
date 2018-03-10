@@ -40,8 +40,11 @@ if(WIN32)
     )
 endif()
 
-install(DIRECTORY "LibOVR/Include" DESTINATION .)
-install(TARGETS LibOVR DESTINATION .)
+file(COPY "${CMAKE_SOURCE_DIR}/LibOVR/Include"
+     DESTINATION "${CMAKE_BINARY_DIR}")
+
+#install(DIRECTORY "LibOVR/Include" DESTINATION .)
+#install(TARGETS LibOVR DESTINATION .)
 
 if(",${CMAKE_BINARY_DIR}" STREQUAL ",")
     set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
