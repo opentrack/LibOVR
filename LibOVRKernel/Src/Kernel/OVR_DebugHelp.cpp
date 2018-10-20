@@ -1328,7 +1328,7 @@ OVR_DISABLE_MSVC_WARNING(4748) // /GS can not protect parameters and local varia
 // Requires the thread to be suspended if not the current thread.
 size_t SymbolLookup::GetBacktrace(void* addressArray[], size_t addressArrayCapacity, size_t skipCount, void* platformThreadContext, OVR::ThreadSysId threadSysIdHelp)
 {
-    #if defined(OVR_OS_WIN64)
+    #if defined OVR_OS_WIN64 && !defined __MINGW32__
         // The DbgHelp library must be loaded already.
         OVR_ASSERT(sSymUsageCount > 0);
 
