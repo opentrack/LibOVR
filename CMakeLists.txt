@@ -30,6 +30,10 @@ endif()
 
 add_definitions(-DOVR_BUILD_SHIPPING)
 
+if(MSVC)
+    add_definitions(-D_HAS_EXCEPTIONS=0)
+endif()
+
 # add_definitions(-DOVR_DLL_BUILD) # shared only
 add_library( LibOVR STATIC ${LIBOVR_FILES} )
 
